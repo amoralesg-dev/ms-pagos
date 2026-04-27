@@ -82,6 +82,9 @@ public class PagosArchivo {
     @Column(name = "nombre_archivo")
     private String nombreArchivo;
 
+    @Column(name = "nombre_archivo_envio")
+    private String nombreArchivoEnvio;
+
     // 🔗 FK por deal_type (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deal_type", referencedColumnName = "deal_type")

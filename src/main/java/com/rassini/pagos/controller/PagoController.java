@@ -2,9 +2,13 @@ package com.rassini.pagos.controller;
 
 import com.rassini.pagos.service.PagoService;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
+
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -33,6 +37,17 @@ public class PagoController {
             @RequestParam(required = false) String rfcBeneficiario) {
 
         return service.filtrarPendientes(codigoProveedor, rfcBeneficiario);
+    }
+
+    @GetMapping("/pendientes/filtro/paginado")
+    public Page<PagoPendienteDTO> filtrarPaginado(
+            @RequestParam(required = false) String codigoProveedor,
+            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return service.filtrarPendientesPaginado(codigoProveedor, rfcBeneficiario, pageable);
     }
 
     //  clasificar pago

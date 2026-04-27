@@ -17,6 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+
 @Service
 public class PagoServiceImpl implements PagoService {
 
@@ -84,5 +88,11 @@ public class PagoServiceImpl implements PagoService {
             .stream()
             .map(PagoMapper::toDTO)
             .toList();
+    }
+
+    @Override
+    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
+        return pagosRepo.filtrarPaginado(codigoProveedor, rfcBeneficiario, pageable)
+                .map(PagoMapper::toDTO);
     }
 }
