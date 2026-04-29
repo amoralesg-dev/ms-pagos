@@ -22,6 +22,11 @@ public class PagoMapper {
         dto.setTipoCambio(entity.getTipoCambio());
         dto.setNombreBeneficiario(entity.getNombreBeneficiario());
         dto.setCuentaBeneficiario(entity.getCuentaBeneficiario());
+        dto.setNombreArchivo(entity.getNombreArchivo());
+        if (entity.getTipoPago() != null) {
+           dto.setTipoPago(entity.getTipoPago().getDealType());  
+        }
+       
 
         return dto;
     }

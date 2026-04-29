@@ -1,24 +1,23 @@
 package com.rassini.pagos.service.impl;
 
-import com.rassini.pagos.entity.CatalogoTipoPago;
-import com.rassini.pagos.entity.PagosArchivo;
-import com.rassini.pagos.repository.CatalogoTipoPagoRepository;
-import com.rassini.pagos.repository.PagosArchivoRepository;
-import com.rassini.pagos.service.EmpresaTipoPagoCache;
-import com.rassini.pagos.service.PagoService;
-import org.springframework.stereotype.Service;
-import com.rassini.pagos.dto.ClasificarPagoItem;
-import com.rassini.pagos.dto.PagoPendienteDTO;
-import com.rassini.pagos.exception.*;
-import com.rassini.pagos.mapper.PagoMapper;
-
 import java.util.ArrayList;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rassini.pagos.dto.ClasificarPagoItem;
+import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.entity.CatalogoTipoPago;
+import com.rassini.pagos.entity.PagosArchivo;
+import com.rassini.pagos.exception.BusinessException;
+import com.rassini.pagos.mapper.PagoMapper;
+import com.rassini.pagos.repository.CatalogoTipoPagoRepository;
+import com.rassini.pagos.repository.PagosArchivoRepository;
+import com.rassini.pagos.service.EmpresaTipoPagoCache;
+import com.rassini.pagos.service.PagoService;
 
 
 @Service
@@ -42,10 +41,15 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public List<PagoPendienteDTO> obtenerSinClasificar() {
 
-        return pagosRepo.findByTipoPagoIsNull()
+        return pagosRepo.findByNombreArchivoEnvioIsNull()
                 .stream()
                 .map(PagoMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public long obtenerTotalPendientes() {
+        return pagosRepo.countByTipoPagoIsNull();
     }
 
     /**
@@ -94,5 +98,37 @@ public class PagoServiceImpl implements PagoService {
     public Page<PagoPendienteDTO> filtrarPendientesPaginado(String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
         return pagosRepo.filtrarPaginado(codigoProveedor, rfcBeneficiario, pageable)
                 .map(PagoMapper::toDTO);
+    }
+
+    @Override
+    public int validarPagosPendientes() {
+        List<PagosArchivo> pendientes = pagosRepo.findPendientesParaValidar();
+        if (pendientes == null || pendientes.isEmpty()) {
+            return 0;
+        }
+
+        String primerNombreArchivo = pendientes.get(0).getNombreArchivo();
+
+        for (PagosArchivo pago : pendientes) {
+            String nombreArchivo = pago.getNombreArchivo();
+            if (primerNombreArchivo == null) {
+                if (nombreArchivo != null) return 0;
+            } else if (!primerNombreArchivo.equals(nombreArchivo)) {
+                return 0;
+            }
+
+            String nombreArchivoEnvio = pago.getNombreArchivoEnvio();
+            if (nombreArchivoEnvio != null && !nombreArchivoEnvio.trim().isEmpty()) {
+                return 0;
+            }
+
+            if (pago.getTipoPago() == null ||
+                pago.getTipoPago().getDealType() == null ||
+                pago.getTipoPago().getDealType().trim().isEmpty()) {
+                return 0;
+            }
+        }
+
+        return 1;
     }
 }

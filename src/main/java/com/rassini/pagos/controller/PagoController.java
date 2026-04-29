@@ -1,16 +1,22 @@
 package com.rassini.pagos.controller;
 
-import com.rassini.pagos.service.PagoService;
-import com.rassini.pagos.service.EmpresaTipoPagoCache;
+import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
+import com.rassini.pagos.service.EmpresaTipoPagoCache;
+import com.rassini.pagos.service.PagoService;
 
 @RestController
 @RequestMapping("/pagos")
@@ -29,6 +35,11 @@ public class PagoController {
     @GetMapping("/pendientes")
     public List<PagoPendienteDTO> pendientes() {
         return service.obtenerSinClasificar();
+    }
+
+    @GetMapping("/pendientes/total")
+    public long obtenerTotalPendientes() {
+        return service.obtenerTotalPendientes();
     }
 
     @GetMapping("/pendientes/filtro")
@@ -62,5 +73,10 @@ public class PagoController {
     public String refreshCache() {
         cache.recargar();
         return "Cache actualizado";
+    }
+
+    @PostMapping("/validar")
+    public int validarPagos() {
+        return service.validarPagosPendientes();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     }
 }
