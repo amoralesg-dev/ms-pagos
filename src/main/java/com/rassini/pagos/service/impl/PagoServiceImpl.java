@@ -39,24 +39,24 @@ public class PagoServiceImpl implements PagoService {
      *  Obtener pagos sin clasificar
      */
     @Override
-    public List<PagoPendienteDTO> obtenerSinClasificar() {
+    public List<PagoPendienteDTO> obtenerSinClasificar(String bu) {
 
-        return pagosRepo.findByNombreArchivoEnvioIsNull()
+        return pagosRepo.findByEmpresaAndNombreArchivoEnvioIsNull(bu)
                 .stream()
                 .map(PagoMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public long obtenerTotalPendientes() {
-        return pagosRepo.countByTipoPagoIsNull();
+    public long obtenerTotalPendientes(String bu) {
+        return pagosRepo.countByEmpresaAndTipoPagoIsNull(bu);
     }
 
     /**
      *  Clasificar pago con validación en cache (sin DB extra)
      */
     @Override
-    public void clasificarPagos(List<ClasificarPagoItem> items) {
+    public void clasificarPagos(List<ClasificarPagoItem> items, String bu) {
 
         List<PagosArchivo> pagosActualizar = new ArrayList<>();
 
@@ -64,6 +64,10 @@ public class PagoServiceImpl implements PagoService {
 
             PagosArchivo pago = pagosRepo.findById(item.getId())
                     .orElseThrow(() -> new BusinessException("Pago no encontrado: " + item.getId()));
+
+            if (!bu.equals(pago.getEmpresa())) {
+                 throw new BusinessException("El pago no pertenece a la unidad de negocio especificada");
+            }
 
             CatalogoTipoPago tipo = catalogoRepo.findByDealType(item.getDealType())
                     .orElseThrow(() -> new BusinessException("Tipo inválido: " + item.getDealType()));
@@ -84,25 +88,23 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
-    public List<PagoPendienteDTO> filtrarPendientes(String codigoProveedor, String rfcBeneficiario) {
+    public List<PagoPendienteDTO> filtrarPendientes(String bu, String codigoProveedor, String rfcBeneficiario) {
 
-        System.out.println("codigoProveedor"+codigoProveedor);
-        System.out.println("rfcBeneficiario"+rfcBeneficiario);
-        return pagosRepo.filtrar(codigoProveedor, rfcBeneficiario)
+        return pagosRepo.filtrar(bu, codigoProveedor, rfcBeneficiario)
             .stream()
             .map(PagoMapper::toDTO)
             .toList();
     }
 
     @Override
-    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
-        return pagosRepo.filtrarPaginado(codigoProveedor, rfcBeneficiario, pageable)
+    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
+        return pagosRepo.filtrarPaginado(bu, codigoProveedor, rfcBeneficiario, pageable)
                 .map(PagoMapper::toDTO);
     }
 
     @Override
-    public int validarPagosPendientes() {
-        List<PagosArchivo> pendientes = pagosRepo.findPendientesParaValidar();
+    public int validarPagosPendientes(String bu) {
+        List<PagosArchivo> pendientes = pagosRepo.findPendientesParaValidar(bu);
         if (pendientes == null || pendientes.isEmpty()) {
             return 0;
         }

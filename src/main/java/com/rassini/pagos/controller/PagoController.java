@@ -33,39 +33,41 @@ public class PagoController {
 
     //  obtener pagos sin clasificar
     @GetMapping("/pendientes")
-    public List<PagoPendienteDTO> pendientes() {
-        return service.obtenerSinClasificar();
+    public List<PagoPendienteDTO> pendientes(@RequestParam String bu) {
+        return service.obtenerSinClasificar(bu);
     }
 
     @GetMapping("/pendientes/total")
-    public long obtenerTotalPendientes() {
-        return service.obtenerTotalPendientes();
+    public long obtenerTotalPendientes(@RequestParam String bu) {
+        return service.obtenerTotalPendientes(bu);
     }
 
     @GetMapping("/pendientes/filtro")
     public List<PagoPendienteDTO> filtrar(
+            @RequestParam String bu,
             @RequestParam(required = false) String codigoProveedor,
             @RequestParam(required = false) String rfcBeneficiario) {
 
-        return service.filtrarPendientes(codigoProveedor, rfcBeneficiario);
+        return service.filtrarPendientes(bu, codigoProveedor, rfcBeneficiario);
     }
 
     @GetMapping("/pendientes/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarPaginado(
+            @RequestParam String bu,
             @RequestParam(required = false) String codigoProveedor,
             @RequestParam(required = false) String rfcBeneficiario,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarPendientesPaginado(codigoProveedor, rfcBeneficiario, pageable);
+        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
     }
 
     //  clasificar pago
     @PutMapping("/clasificacion")
-    public String clasificar(@RequestBody ClasificarPagosRequest request) {
+    public String clasificar(@RequestParam String bu, @RequestBody ClasificarPagosRequest request) {
 
-        service.clasificarPagos(request.getItems());
+        service.clasificarPagos(request.getItems(), bu);
 
         return "Pagos actualizados correctamente";
     }
@@ -76,7 +78,7 @@ public class PagoController {
     }
 
     @PostMapping("/validar")
-    public int validarPagos() {
-        return service.validarPagosPendientes();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+    public int validarPagos(@RequestParam String bu) {
+        return service.validarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     }
 }

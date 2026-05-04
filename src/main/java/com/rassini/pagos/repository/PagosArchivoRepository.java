@@ -13,30 +13,34 @@ import com.rassini.pagos.entity.PagosArchivo;
 public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long> {
 
     
-    List<PagosArchivo> findByNombreArchivoEnvioIsNull();
+    List<PagosArchivo> findByEmpresaAndNombreArchivoEnvioIsNull(String empresa);
 
-    @Query("SELECT p FROM PagosArchivo p WHERE p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '' ORDER BY p.nombreArchivo")
-    List<PagosArchivo> findPendientesParaValidar();
+    @Query("SELECT p FROM PagosArchivo p WHERE (p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '') AND p.empresa = :empresa ORDER BY p.nombreArchivo")
+    List<PagosArchivo> findPendientesParaValidar(@Param("empresa") String empresa);
 
-    long countByTipoPagoIsNull();
+    long countByEmpresaAndTipoPagoIsNull(String empresa);
 
     @Query("""
     SELECT p FROM PagosArchivo p
     WHERE ( p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '' )
+    AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
     """)
     List<PagosArchivo> filtrar(
+            @Param("empresa") String empresa,
             @Param("codigoProveedor") String codigoProveedor,
             @Param("rfcBeneficiario") String rfcBeneficiario);
 
     @Query("""
     SELECT p FROM PagosArchivo p
     WHERE ( p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '' )
+    AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
     """)
     Page<PagosArchivo> filtrarPaginado(
+            @Param("empresa") String empresa,
             @Param("codigoProveedor") String codigoProveedor,
             @Param("rfcBeneficiario") String rfcBeneficiario,
             Pageable pageable);

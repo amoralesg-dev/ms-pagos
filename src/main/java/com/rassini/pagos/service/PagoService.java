@@ -1,6 +1,8 @@
 package com.rassini.pagos.service;
 
 import java.util.List;
+
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -9,15 +11,15 @@ import com.rassini.pagos.dto.PagoPendienteDTO;
 
 public interface PagoService {
 
-    List<PagoPendienteDTO> obtenerSinClasificar();
+    List<PagoPendienteDTO> obtenerSinClasificar(String bu);
 
-    long obtenerTotalPendientes();
+    long obtenerTotalPendientes(String bu);
 
-    void clasificarPagos(List<ClasificarPagoItem> items);
+    void clasificarPagos(List<ClasificarPagoItem> items, String bu);
 
-    List<PagoPendienteDTO> filtrarPendientes(String codigoProveedor, String rfcBeneficiario);
+    List<PagoPendienteDTO> filtrarPendientes(String bu, String codigoProveedor, String rfcBeneficiario);
 
-    Page<PagoPendienteDTO> filtrarPendientesPaginado(String codigoProveedor, String rfcBeneficiario, Pageable pageable);
+    Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
 
-    int validarPagosPendientes();
+    int validarPagosPendientes(String bu);
 }
