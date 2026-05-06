@@ -44,6 +44,19 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             @Param("codigoProveedor") String codigoProveedor,
             @Param("rfcBeneficiario") String rfcBeneficiario,
             Pageable pageable);
+    
+    @Query("""
+    SELECT p FROM PagosArchivo p
+    WHERE ( p.nombreArchivoEnvio IS NOT NULL OR p.nombreArchivoEnvio <> '' )
+    AND p.empresa = :empresa
+    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+    """)
+    Page<PagosArchivo> filtrarEnviadosPaginado(
+            @Param("empresa") String empresa,
+            @Param("codigoProveedor") String codigoProveedor,
+            @Param("rfcBeneficiario") String rfcBeneficiario,
+            Pageable pageable);
 
 @Query("""
     SELECT p FROM PagosArchivo p

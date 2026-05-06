@@ -114,6 +114,12 @@ public class PagoServiceImpl implements PagoService {
                 .map(PagoMapper::toDTO);
     }
 
+     @Override
+    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
+        return pagosRepo.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable)
+                .map(PagoMapper::toDTO);
+    }
+
     @Override
     public int validarPagosPendientes(String bu) {
         List<PagosArchivo> pendientes = pagosRepo.findPendientesParaValidar(bu);

@@ -63,6 +63,18 @@ public class PagoController {
         return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
     }
 
+    @GetMapping("/enviados/filtro/paginado")
+    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
+            @RequestParam String bu,
+            @RequestParam(required = false) String codigoProveedor,
+            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return service.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
+    }
+
     //  clasificar pago
     @PutMapping("/clasificacion")
     public String clasificar(@RequestParam String bu, @RequestBody ClasificarPagosRequest request) {

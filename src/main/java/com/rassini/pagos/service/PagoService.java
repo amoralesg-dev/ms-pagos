@@ -20,6 +20,8 @@ public interface PagoService {
 
     Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
 
+    Page<PagoPendienteDTO> filtrarEnviadosPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
+
     int validarPagosPendientes(String bu);
 
     int enviarPagosPendientes(String bu);

@@ -1,11 +1,24 @@
 package com.rassini.pagos.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "suppliers")
+@Table(
+    name = "suppliers",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_suppliers_creditor_erp", columnNames = {"creditor_code", "business_unit_code"})
+    }
+)
 @Getter
 @Setter
 public class Supplier {
@@ -14,72 +27,91 @@ public class Supplier {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "CreditorCode", length = 10)
-    private String creditorCode;
-
-    @Column(name = "BusinessRelationName1", length = 140)
-    private String businessRelationName1;
-
-    @Column(name = "BusinessRelationSearchName", length = 20)
-    private String businessRelationSearchName;
-
-    @Column(name = "CreditorTaxIDFederal", length = 50)
-    private String creditorTaxIDFederal;
-
-    @Column(name = "AddressStreet1", length = 70)
-    private String addressStreet1;
-
-    @Column(name = "StreetNumber", length = 16)
-    private String streetNumber;
-
-    @Column(name = "AddressZip", length = 16)
-    private String addressZip;
-
-    @Column(name = "CityCode", length = 35)
-    private String cityCode;
-
-    @Column(name = "StateCode", length = 35)
-    private String stateCode;
-
-    @Column(name = "CountryCode", length = 2)
-    private String countryCode;
-
-    @Column(name = "ContactEmail", length = 50)
-    private String contactEmail;
-
-    @Column(name = "CptyAccountCode", length = 10)
-    private String cptyAccountCode;
-
-    @Column(name = "Currency", length = 3)
-    private String currency;
-
-    @Column(name = "BeneficiaryName", length = 100)
-    private String beneficiaryName;
-
-    @Column(name = "AccountNumber", length = 35)
+    @Column(name = "account_number")
     private String accountNumber;
 
-    @Column(name = "BeneficiaryBankName", length = 140)
-    private String beneficiaryBankName;
+    @Column(name = "address_street_1")
+    private String addressStreet1;
 
-    @Column(name = "BankCountry", length = 2)
+    @Column(name = "address_zip")
+    private String addressZip;
+
+    @Column(name = "bank_country")
     private String bankCountry;
 
-    @Column(name = "RoutingCodeABA", length = 11)
-    private String routingCodeABA;
+    @Column(name = "beneficiary_bank_name")
+    private String beneficiaryBankName;
 
-    @Column(name = "RoutingCodeBIC", length = 9)
-    private String routingCodeBIC;
+    @Column(name = "beneficiary_name")
+    private String beneficiaryName;
 
-    @Column(name = "IntermediaryAccount", length = 140)
+    @Column(name = "business_relation_name_1")
+    private String businessRelationName1;
+
+    @Column(name = "business_relation_search_name")
+    private String businessRelationSearchName;
+
+    @Column(name = "business_unit_code")
+    private String businessUnitCode;
+
+    @Column(name = "city_code")
+    private String cityCode;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "country_code")
+    private String countryCode;
+
+    @Column(name = "cpty_account_code")
+    private String cptyAccountCode;
+
+    @Column(name = "creditor_code")
+    private String creditorCode;
+
+    @Column(name = "creditor_tax_id_federal")
+    private String creditorTaxIDFederal;
+
+    @Column(name = "currency")
+    private String currency;
+
+    @Column(name = "intermediary_account")
     private String intermediaryAccount;
 
-    @Column(name = "IntermediaryRoutingCodeABA", length = 11)
+    @Column(name = "intermediary_account_country")
+    private String intermediaryAccountCountry;
+
+    @Column(name = "intermediary_routing_code_aba")
     private String intermediaryRoutingCodeABA;
 
-    @Column(name = "IntermediaryRoutingCodeBIC", length = 9)
+    @Column(name = "intermediary_routing_code_bic")
     private String intermediaryRoutingCodeBIC;
 
-    @Column(name = "IntermediaryAccountCountry", length = 2)
-    private String intermediaryAccountCountry;
+    @Column(name = "routing_code_aba")
+    private String routingCodeABA;
+
+    @Column(name = "routing_code_bic")
+    private String routingCodeBIC;
+
+    @Column(name = "state_code")
+    private String stateCode;
+
+    @Column(name = "street_number")
+    private String streetNumber;
+
+    @Column(name = "contact_name")
+    private String contactName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "xml_status", nullable = false)
+    private XmlStatus xmlStatus;
+
+    @Column(name = "address_street_2")
+    private String addressStreet2;
+
+    @Column(name = "address_street_3")
+    private String addressStreet3;
+
+    @Column(name = "erp_id_qad")
+    private String erpIdQad;
 }
