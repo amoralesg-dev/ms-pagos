@@ -81,4 +81,9 @@ public class PagoController {
     public int validarPagos(@RequestParam String bu) {
         return service.validarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     }
+
+    @PostMapping("/enviar")
+    public int enviarPagos(@RequestParam String bu) {
+        return service.enviarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+    }
 }

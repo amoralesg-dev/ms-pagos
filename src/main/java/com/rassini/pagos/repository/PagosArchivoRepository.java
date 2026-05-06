@@ -44,4 +44,14 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             @Param("codigoProveedor") String codigoProveedor,
             @Param("rfcBeneficiario") String rfcBeneficiario,
             Pageable pageable);
+
+@Query("""
+    SELECT p FROM PagosArchivo p
+    WHERE (p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '')
+    AND p.empresa = :empresa
+    AND p.tipoPago IS NOT NULL
+    ORDER BY p.nombreArchivo, p.tipoPago.dealType
+    """)
+    List<PagosArchivo> findPendientesPorEnviar(@Param("empresa") String empresa);
+
 }

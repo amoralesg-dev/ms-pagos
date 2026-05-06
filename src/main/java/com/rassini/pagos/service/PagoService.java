@@ -2,7 +2,6 @@ package com.rassini.pagos.service;
 
 import java.util.List;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -22,4 +21,6 @@ public interface PagoService {
     Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
 
     int validarPagosPendientes(String bu);
+
+    int enviarPagosPendientes(String bu);
 }
