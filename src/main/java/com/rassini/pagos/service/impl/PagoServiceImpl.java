@@ -236,7 +236,16 @@ public class PagoServiceImpl implements PagoService {
         campos[20] = nvl(pago.getMonedaBeneficiario());
 
         if (supplier != null) {
-            campos[21] = nvl(supplier.getBeneficiaryBankName());
+            boolean isBeneficiaryBankValid =
+                java.util.Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
+                java.util.Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
+                java.util.Objects.equals(pago.getMonedaBeneficiario(), supplier.getCurrency());
+
+            if (isBeneficiaryBankValid) {
+                campos[21] = nvl(supplier.getBeneficiaryBankName());
+            } else {
+                campos[21] = "";
+            }
 
             String ruteo = supplier.getRoutingCodeBIC();
             if (ruteo == null || ruteo.isEmpty()) {
