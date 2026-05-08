@@ -47,7 +47,7 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
     
     @Query("""
     SELECT p FROM PagosArchivo p
-    WHERE ( p.nombreArchivoEnvio IS NOT NULL OR p.nombreArchivoEnvio <> '' )
+    WHERE ( p.nombreArchivoEnvio IS NOT NULL AND p.nombreArchivoEnvio <> '' )
     AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)

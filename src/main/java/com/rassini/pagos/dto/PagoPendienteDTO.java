@@ -20,5 +20,6 @@ public class PagoPendienteDTO {
     private String nombreBeneficiario;
     private String cuentaBeneficiario;
     private String nombreArchivo;
+    private String nombreArchivoEnvio;
     private String tipoPago;
 }
