@@ -136,6 +136,9 @@ public class PagoServiceImpl implements PagoService {
             } else if (!primerNombreArchivo.equals(nombreArchivo)) {
                 return 0;
             }
+            if(pago.getNombreArchivoEnvio() == null){
+                return 1;
+            }
 
             String nombreArchivoEnvio = pago.getNombreArchivoEnvio();
             if (nombreArchivoEnvio != null && !nombreArchivoEnvio.trim().isEmpty()) {
@@ -178,7 +181,7 @@ public class PagoServiceImpl implements PagoService {
                 List<PagosArchivo> pagos = entryTipo.getValue();
 
                 String cleanTipoPago = tipoPago.replaceAll("\\s+", "");
-                String outputFileName = String.format("%s_%s_%s_%s.txt", cleanTipoPago, bu, fechaActual, nombreArchivo);
+                String outputFileName = String.format("%s_%s.txt", cleanTipoPago, nombreArchivo);
 
                 List<String> lineas = new ArrayList<>();
                 for (PagosArchivo pago : pagos) {
@@ -221,16 +224,22 @@ public class PagoServiceImpl implements PagoService {
         campos[11] = nvl(pago.getNombreBeneficiario());
         campos[12] = nvl(pago.getRfcBeneficiario());
 
-        if (supplier != null) {
-            campos[13] = nvl(supplier.getAddressStreet1());
-            campos[14] = nvl(supplier.getStreetNumber());
-            campos[15] = nvl(supplier.getAddressZip());
-            campos[16] = nvl(supplier.getCityCode());
-            campos[17] = nvl(supplier.getStateCode());
-            campos[18] = nvl(supplier.getCountryCode());
-        } else {
-            campos[13] = campos[14] = campos[15] = campos[16] = campos[17] = campos[18] = "";
+        if (supplier == null ||
+            supplier.getAddressStreet1() == null || supplier.getAddressStreet1().trim().isEmpty() ||
+            supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
+            supplier.getAddressZip() == null || supplier.getAddressZip().trim().isEmpty() ||
+            supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
+            supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
+            supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
+            throw new BusinessException("El proveedor no cuenta con la información completa");
         }
+
+        campos[13] = nvl(supplier.getAddressStreet1());
+        campos[14] = nvl(supplier.getStreetNumber());
+        campos[15] = nvl(supplier.getAddressZip());
+        campos[16] = nvl(supplier.getCityCode());
+        campos[17] = nvl(supplier.getStateCode());
+        campos[18] = nvl(supplier.getCountryCode());
 
         campos[19] = nvl(pago.getCuentaBeneficiario());
         campos[20] = nvl(pago.getMonedaBeneficiario());
