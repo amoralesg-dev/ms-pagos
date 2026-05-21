@@ -9,5 +9,5 @@ import com.rassini.pagos.entity.Supplier;
 
 @Repository
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
-    Optional<Supplier> findFirstByCreditorCode(String creditorCode);
+    Optional<Supplier> findFirstBySupplierCode(String supplierCode);
 }

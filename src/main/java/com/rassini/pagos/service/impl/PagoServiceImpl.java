@@ -187,7 +187,7 @@ public class PagoServiceImpl implements PagoService {
                 for (PagosArchivo pago : pagos) {
                     Supplier supplier = null;
                     if (pago.getCodigoProveedor() != null) {
-                        supplier = supplierRepo.findFirstByCreditorCode(pago.getCodigoProveedor()).orElse(null);
+                        supplier = supplierRepo.findFirstBySupplierCode(pago.getCodigoProveedor()).orElse(null);
                     }
                     lineas.add(generarLineaLayout(pago, supplier));
 
@@ -225,18 +225,18 @@ public class PagoServiceImpl implements PagoService {
         campos[12] = nvl(pago.getRfcBeneficiario());
 
         if (supplier == null ||
-            supplier.getAddressStreet1() == null || supplier.getAddressStreet1().trim().isEmpty() ||
+            supplier.getStreetName() == null || supplier.getStreetName().trim().isEmpty() ||
             supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
-            supplier.getAddressZip() == null || supplier.getAddressZip().trim().isEmpty() ||
+            supplier.getZipCode() == null || supplier.getZipCode().trim().isEmpty() ||
             supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
             supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
             supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
             throw new BusinessException("El proveedor no cuenta con la información completa");
         }
 
-        campos[13] = nvl(supplier.getAddressStreet1());
+        campos[13] = nvl(supplier.getStreetName());
         campos[14] = nvl(supplier.getStreetNumber());
-        campos[15] = nvl(supplier.getAddressZip());
+        campos[15] = nvl(supplier.getZipCode());
         campos[16] = nvl(supplier.getCityCode());
         campos[17] = nvl(supplier.getStateCode());
         campos[18] = nvl(supplier.getCountryCode());
@@ -248,7 +248,7 @@ public class PagoServiceImpl implements PagoService {
             boolean isBeneficiaryBankValid =
                 java.util.Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
                 java.util.Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
-                java.util.Objects.equals(pago.getMonedaBeneficiario(), supplier.getCurrency());
+                java.util.Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
 
             if (isBeneficiaryBankValid) {
                 campos[21] = nvl(supplier.getBeneficiaryBankName());
@@ -256,18 +256,18 @@ public class PagoServiceImpl implements PagoService {
                 campos[21] = "";
             }
 
-            String ruteo = supplier.getRoutingCodeBIC();
+            String ruteo = supplier.getRoutingCodeSwift();
             if (ruteo == null || ruteo.isEmpty()) {
-                ruteo = supplier.getRoutingCodeABA();
+                ruteo = supplier.getRoutingCodeAba();
             }
             campos[22] = nvl(ruteo);
 
             campos[23] = nvl(supplier.getBankCountry());
             campos[24] = nvl(supplier.getIntermediaryAccount());
 
-            String intRuteo = supplier.getIntermediaryRoutingCodeBIC();
+            String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
             if (intRuteo == null || intRuteo.isEmpty()) {
-                intRuteo = supplier.getIntermediaryRoutingCodeABA();
+                intRuteo = supplier.getIntermediaryRoutingCodeAba();
             }
             campos[25] = nvl(intRuteo);
 
