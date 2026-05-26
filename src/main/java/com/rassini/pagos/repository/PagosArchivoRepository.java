@@ -12,7 +12,8 @@ import com.rassini.pagos.entity.PagosArchivo;
 
 public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long> {
 
-    
+    boolean existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(String nombreArchivo, String monto, String codigoProveedor, String fechaEnvio);
+
     List<PagosArchivo> findByEmpresaAndNombreArchivoEnvioIsNull(String empresa);
 
     @Query("SELECT p FROM PagosArchivo p WHERE (p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '') AND p.empresa = :empresa ORDER BY p.nombreArchivo")

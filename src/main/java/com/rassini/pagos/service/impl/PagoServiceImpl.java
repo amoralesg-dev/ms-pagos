@@ -181,17 +181,25 @@ public class PagoServiceImpl implements PagoService {
                 List<PagosArchivo> pagos = entryTipo.getValue();
 
                 String cleanTipoPago = tipoPago.replaceAll("\\s+", "");
-                String outputFileName = String.format("%s_%s.txt", cleanTipoPago, nombreArchivo);
+                String baseNombreArchivo = nombreArchivo;
+                if (baseNombreArchivo != null && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
+                    baseNombreArchivo = baseNombreArchivo.substring(0, baseNombreArchivo.length() - 4);
+                }
+                String outputFileName = String.format("%s_%s.txt", cleanTipoPago, baseNombreArchivo);
 
                 List<String> lineas = new ArrayList<>();
                 for (PagosArchivo pago : pagos) {
                     Supplier supplier = null;
                     if (pago.getCodigoProveedor() != null) {
-                        supplier = supplierRepo.findFirstBySupplierCode(pago.getCodigoProveedor()).orElse(null);
+                        supplier = supplierRepo.findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(),bu).orElse(null);
                     }
-                    lineas.add(generarLineaLayout(pago, supplier));
+                    //agregar validacion de registros duplicados 
+                    if( pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")){
+                        lineas.add(generarLineaLayout(pago, supplier, outputFileName));
+                        pago.setNombreArchivoEnvio(outputFileName);
+                    }
 
-                    pago.setNombreArchivoEnvio(outputFileName);
+                    
                 }
 
                 try {
@@ -208,7 +216,7 @@ public class PagoServiceImpl implements PagoService {
         return filesGenerated;
     }
 
-    private String generarLineaLayout(PagosArchivo pago, Supplier supplier) {
+    private String generarLineaLayout(PagosArchivo pago, Supplier supplier, String outputFileName) {
         String[] campos = new String[28];
         campos[0] = nvl(pago.getEmpresa());
         campos[1] = nvl(pago.getCuentaOrdenante());
@@ -276,7 +284,7 @@ public class PagoServiceImpl implements PagoService {
             campos[21] = campos[22] = campos[23] = campos[24] = campos[25] = campos[26] = "";
         }
 
-        campos[27] = nvl(pago.getNombreArchivo());
+        campos[27] = nvl(outputFileName);
 
         return String.join("|", campos);
     }

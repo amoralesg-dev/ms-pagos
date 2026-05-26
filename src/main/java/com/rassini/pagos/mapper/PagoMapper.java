@@ -23,6 +23,7 @@ public class PagoMapper {
         dto.setNombreBeneficiario(entity.getNombreBeneficiario());
         dto.setCuentaBeneficiario(entity.getCuentaBeneficiario());
         dto.setNombreArchivo(entity.getNombreArchivo());
+        dto.setDuplicado(entity.getDuplicado());
          if (entity.getNombreArchivoEnvio() != null && !entity.getNombreArchivoEnvio().isEmpty()) {
            dto.setNombreArchivoEnvio(entity.getNombreArchivoEnvio());
         }

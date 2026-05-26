@@ -35,6 +35,7 @@ public class PagoDTO {
     private String campoVacio6;
     private String nombreArchivo;
     private String nombreArchivoEnvio;
+    private String duplicado;
 
     private String dealType; // clasificación
 }
