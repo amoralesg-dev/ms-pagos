@@ -3,6 +3,12 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+ 
+
+# Logs locales
+logs/
+*.log
+
 
 ### STS ###
 .apt_generated
