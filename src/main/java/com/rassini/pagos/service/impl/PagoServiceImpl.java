@@ -91,9 +91,9 @@ public class PagoServiceImpl implements PagoService {
                         " (pago id: " + item.getId() + ")"
                 );
             }
-            if(item.getDecisionDuplicado() != null && item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Aceptar")) {
+            if(item.getDecisionDuplicado() != null && !item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Aceptar")) {
                 pago.setDuplicado("A");
-            } else if( item.getDecisionDuplicado() != null && item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Rechazar") ){
+            } else if( item.getDecisionDuplicado() != null && !item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Rechazar") ){
                 pago.setDuplicado("R");
             }
             pago.setTipoPago(tipo);
