@@ -56,11 +56,13 @@ public class PagoController {
             @RequestParam String bu,
             @RequestParam(required = false) String codigoProveedor,
             @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String tipoPago,
+            @RequestParam(required = false) String estatus,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
+        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, pageable);
     }
 
     @GetMapping("/enviados/filtro/paginado")
@@ -99,3 +101,4 @@ public class PagoController {
         return service.enviarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     }
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             

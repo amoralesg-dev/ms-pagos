@@ -91,12 +91,17 @@ public class PagoServiceImpl implements PagoService {
                         " (pago id: " + item.getId() + ")"
                 );
             }
-
+            if(item.getDecisionDuplicado() != null && item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Aceptar")) {
+                pago.setDuplicado("A");
+            } else if( item.getDecisionDuplicado() != null && item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Rechazar") ){
+                pago.setDuplicado("R");
+            }
             pago.setTipoPago(tipo);
             pagosActualizar.add(pago);
         }
 
         pagosRepo.saveAll(pagosActualizar);
+        
     }
 
     @Override
@@ -109,8 +114,8 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
-    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
-        return pagosRepo.filtrarPaginado(bu, codigoProveedor, rfcBeneficiario, pageable)
+    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, String tipoPago, String estatus, Pageable pageable) {
+        return pagosRepo.filtrarPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, pageable)
                 .map(PagoMapper::toDTO);
     }
 

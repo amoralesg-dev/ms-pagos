@@ -11,4 +11,5 @@ public class ClasificarPagoItem {
 
     private Long id;
     private String dealType;
+    private String decisionDuplicado;
 }
