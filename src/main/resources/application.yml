@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: ms-pagos
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+server:
+  address: 0.0.0.0
+  port: ${APP_PORT:8082}
+  servlet:
+    context-path: /ms-pagos
+  error:
+    include-message: always
+    include-binding-errors: always
+
+loader:
+  path: ${LOADER_PATH:C:/apps/ms-pagos/input}
+
+logging:
+  file:
+    name: logs/ms-pagos.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/archive/ms-pagos.%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: 20MB
+      max-history: 5
+      total-size-cap: 500MB
+      clean-history-on-start: true
+  level:
+    root: INFO
+    com.rassini.pagos: DEBUG
+    org.springframework: INFO
+    org.hibernate: ERROR
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ms-pagos
+    export:
+      prometheus:
+        enabled: true
