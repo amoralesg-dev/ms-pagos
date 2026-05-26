@@ -1,0 +1,98 @@
+name: CI DEV
+
+on:
+  push:
+    branches:
+      - DEV
+      - main
+  workflow_dispatch:
+  
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Compilar y correr tests
+        run: mvn clean verify -Dspring.profiles.active=test -e
+
+      - name: Subir reportes de Surefire
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          if-no-files-found: warn
+
+      - name: Subir JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ms-pagos-jar
+          path: target/ms-pagos.jar
+          if-no-files-found: error
+
+  deploy-dev:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/DEV'
+    runs-on: [self-hosted, Windows, X64, backend, ms-pagos, dev]
+
+    steps:
+      - name: Descargar JAR generado
+        uses: actions/download-artifact@v4
+        with:
+          name: ms-pagos-jar
+          path: C:\deploy\ms-pagos
+
+      - name: Validar artifact descargado
+        shell: cmd
+        run: dir C:\deploy\ms-pagos
+
+      - name: Detener servicio DEV
+        shell: cmd
+        run: |
+          net stop ms-pagos-dev || exit /b 0
+
+      - name: Crear carpeta backup si no existe
+        shell: cmd
+        run: |
+          if not exist C:\apps\ms-pagos\backup mkdir C:\apps\ms-pagos\backup
+
+      - name: Respaldar JAR actual
+        shell: cmd
+        run: |
+          if exist C:\apps\ms-pagos\ms-pagos.jar (
+            copy C:\apps\ms-pagos\ms-pagos.jar C:\apps\ms-pagos\backup\ms-pagos-%GITHUB_RUN_NUMBER%.jar
+          )
+
+      - name: Copiar nuevo JAR
+        shell: cmd
+        run: |
+          copy C:\deploy\ms-pagos\ms-pagos.jar C:\apps\ms-pagos\ms-pagos.jar /Y
+
+      - name: Validar JAR desplegado
+        shell: cmd
+        run: dir C:\apps\ms-pagos\*.jar
+
+      - name: Iniciar servicio DEV
+        shell: cmd
+        run: net start ms-pagos-dev
+
+      - name: Esperar arranque
+        shell: cmd
+        run: ping 127.0.0.1 -n 16 > nul
+
+      - name: Validar health DEV
+        shell: cmd
+        run: curl http://localhost:8082/ms-pagos/actuator/health
