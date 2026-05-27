@@ -1,17 +1,20 @@
 package com.rassini.pagos.service.impl;
 
-import com.rassini.pagos.entity.PagosArchivo;
-import com.rassini.pagos.repository.PagosArchivoRepository;
-import com.rassini.pagos.service.FileLoaderService;
-import com.rassini.pagos.util.TxtParser;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.rassini.pagos.entity.PagosArchivo;
+import com.rassini.pagos.repository.PagosArchivoRepository;
+import com.rassini.pagos.service.FileLoaderService;
+import com.rassini.pagos.util.TxtParser;
 
 @Service
 public class FileLoaderServiceImpl implements FileLoaderService {
@@ -29,7 +32,9 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     @Override
     public void cargarArchivos() {
 
-        File folder = new File(rutaCarpeta);
+        File folder = new File("/Users/raulgallardo/opt/pagos/input");
+                    System.out.println(folder);
+
 
         if (!folder.exists() || !folder.isDirectory()) {
             throw new RuntimeException("Ruta inválida configurada: " + rutaCarpeta);
@@ -50,6 +55,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     private void procesarArchivo(File archivo) {
 
         List<PagosArchivo> batch = new ArrayList<>();
+        Set<String> registrosProcesados = new HashSet<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
 
@@ -59,6 +65,30 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                 try {
                     PagosArchivo pago = TxtParser.parseLine(line, archivo.getName());
+
+                    // Validar si existe duplicado (en memoria para el archivo actual y luego en BD)
+                    String uniqueKey = pago.getNombreArchivo() + "|" +
+                                       pago.getMonto() + "|" +
+                                       pago.getCodigoProveedor() + "|" +
+                                       pago.getFechaEnvio();
+
+                    boolean existeDuplicado = registrosProcesados.contains(uniqueKey);
+
+                    if (!existeDuplicado) {
+                        existeDuplicado = repository.existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
+                            pago.getNombreArchivo(),
+                            pago.getMonto(),
+                            pago.getCodigoProveedor(),
+                            pago.getFechaEnvio()
+                        );
+                    }
+
+                    if (existeDuplicado) {
+                        pago.setDuplicado("S");
+                    } else {
+                        registrosProcesados.add(uniqueKey);
+                    }
+
                     batch.add(pago);
 
                     if (batch.size() == 500) {
