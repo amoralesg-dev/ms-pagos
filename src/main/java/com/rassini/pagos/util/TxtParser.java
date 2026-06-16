@@ -22,7 +22,7 @@ public class TxtParser {
         p.setContador(get(parts, 5));
         p.setCodigoProveedor(get(parts, 6));
         p.setRfcBeneficiario(get(parts, 7));
-
+        p.setInformacionAdicional(get(parts, 8));
         p.setMonto(get(parts, 9));
         p.setMoneda(get(parts, 10));
         p.setTipoCambio(get(parts, 11));

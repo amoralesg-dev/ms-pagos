@@ -202,9 +202,9 @@ public class PagoServiceImpl implements PagoService {
                     if( pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")){
                         lineas.add(generarLineaLayout(pago, supplier, outputFileName));
                         pago.setNombreArchivoEnvio(outputFileName);
+                    } else {
+                        pago.setNombreArchivoEnvio(outputFileName);
                     }
-
-                    
                 }
 
                 try {
