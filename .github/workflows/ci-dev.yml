@@ -59,10 +59,10 @@ jobs:
         shell: cmd
         run: dir C:\deploy\ms-pagos
 
-      - name: Detener servicio DEV
+      - name: Detener servicio PROD
         shell: cmd
         run: |
-          net stop ms-pagos-dev || exit /b 0
+          net stop ms-pagos-prod || exit /b 0
 
       - name: Crear carpeta backup si no existe
         shell: cmd
@@ -85,9 +85,9 @@ jobs:
         shell: cmd
         run: dir C:\apps\ms-pagos\*.jar
 
-      - name: Iniciar servicio DEV
+      - name: Iniciar servicio PROD
         shell: cmd
-        run: net start ms-pagos-dev
+        run: net start ms-pagos-prod
 
       - name: Esperar arranque
         shell: cmd
