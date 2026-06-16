@@ -46,7 +46,7 @@ jobs:
   deploy-prod:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Windows, X64, backend, ms-pagos, dev]
+    runs-on: [self-hosted, Windows, X64, backend, ms-pagos, prod]
 
     steps:
       - name: Descargar JAR generado
