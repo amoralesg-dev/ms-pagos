@@ -1,4 +1,4 @@
-name: CI DEV
+name: CI PROD
 
 on:
   push:
@@ -43,9 +43,9 @@ jobs:
           path: target/ms-pagos.jar
           if-no-files-found: error
 
-  deploy-dev:
+  deploy-prod:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/DEV'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, Windows, X64, backend, ms-pagos, dev]
 
     steps:
