@@ -141,12 +141,19 @@ jobs:
 
       - name: Iniciar servicio DEV
         shell: cmd
-        run: net start ms-pagos-dev
+        run: |
+          sc start ms-pagos-dev
+          timeout /t 15
+          sc query ms-pagos-dev
 
       - name: Esperar arranque
         shell: cmd
         run: ping 127.0.0.1 -n 16 > nul
 
-      - name: Validar health PROD
+      - name: Ver estado servicio
+        shell: cmd
+        run: sc query ms-pagos-dev
+
+      - name: Validar health DEV
         shell: cmd
         run: curl http://localhost:8082/ms-pagos/actuator/health
