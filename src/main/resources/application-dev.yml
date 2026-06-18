@@ -14,5 +14,5 @@ logging:
     org.springframework: INFO
     org.hibernate: ERROR
 cors:
-  allowed-origins: "http://10.15.1.24:8080"
+  allowed-origins: "http://10.15.1.37:8080"
 
