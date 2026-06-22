@@ -75,6 +75,18 @@ jobs:
           if exist C:\apps\ms-pagos\ms-pagos.jar (
             copy C:\apps\ms-pagos\ms-pagos.jar C:\apps\ms-pagos\backup\ms-pagos-%GITHUB_RUN_NUMBER%.jar
           )
+      - name: Conservar últimos 6 backups PROD
+        shell: powershell
+        run: |
+          $backups = Get-ChildItem "C:\apps\ms-pagos\backup\ms-pagos-*.jar" |
+                     Sort-Object LastWriteTime -Descending
+
+          $backups | Select-Object -Skip 6 | Remove-Item -Force
+
+          Write-Host "Backups conservados:"
+          Get-ChildItem "C:\apps\ms-pagos\backup\ms-pagos-*.jar" |
+          Sort-Object LastWriteTime -Descending |
+          Select-Object Name, LastWriteTime
 
       - name: Copiar nuevo JAR
         shell: cmd
@@ -91,11 +103,52 @@ jobs:
 
       - name: Esperar arranque
         shell: cmd
-        run: ping 127.0.0.1 -n 16 > nul
+        run: ping 127.0.0.1 -n 31 > nul
 
-      - name: Validar health DEV
+      - name: Validar servicio Windows
         shell: cmd
-        run: curl http://localhost:8082/ms-pagos/actuator/health
+        run: |
+          sc query ms-pagos-prod
+
+      - name: Validar puerto 8082
+        shell: cmd
+        run: |
+          netstat -ano | findstr :8082
+
+      - name: Esperar Health PROD
+        shell: powershell
+        run: |
+          $url = "http://localhost:8082/ms-pagos/actuator/health"
+          $maxAttempts = 12
+
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+
+            Write-Host "Intento $i de $maxAttempts"
+
+            try {
+              $response = Invoke-RestMethod `
+                -Uri $url `
+                -TimeoutSec 10
+
+              Write-Host "Health OK"
+
+              $response | ConvertTo-Json -Depth 10
+
+              exit 0
+            }
+            catch {
+              Write-Host $_.Exception.Message
+              Start-Sleep -Seconds 5
+            }
+          }
+
+          Write-Host "El servicio nunca respondió al health endpoint"
+
+          sc.exe query ms-pagos-prod
+
+          netstat -ano | findstr :8082
+
+          exit 1
 
   deploy-dev:
     needs: build
