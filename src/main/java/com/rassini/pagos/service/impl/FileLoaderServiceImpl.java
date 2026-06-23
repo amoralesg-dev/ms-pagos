@@ -32,7 +32,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     @Override
     public void cargarArchivos() {
 
-        File folder = new File("/Users/raulgallardo/opt/pagos/input");
+        File folder = new File(rutaCarpeta);
                     System.out.println(folder);
 
 
