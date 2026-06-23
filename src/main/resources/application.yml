@@ -26,7 +26,7 @@ server:
 loader:
   path: ${LOADER_PATH:C:/apps/ms-pagos/input}
   schedule:
-    cron: "0 0/15 * * * *"
+    cron: "0 0/2 * * * *"
     zone: "America/Mexico_City"
 
 
