@@ -1,5 +1,7 @@
 package com.rassini.pagos.config;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,23 +12,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins:http://localhost:4200}")
-    private String[] allowedOrigins;
+    
+    
+    @Value("#{'${cors.allowed-origins:http://localhost:4200}'.split(',')}")
+    private List<String> allowedOrigins;
 
-     @Bean
+
+
+    @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                if (allowedOrigins != null && allowedOrigins.length == 1 && "*".equals(allowedOrigins[0])) {
+
+                if (allowedOrigins != null 
+                    && allowedOrigins.size() == 1 
+                    && "*".equals(allowedOrigins.get(0))) {
+
                     registry.addMapping("/**")
                             .allowedOriginPatterns("*")
                             .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                             .allowedHeaders("*")
                             .allowCredentials(true);
+
                 } else {
+
                     registry.addMapping("/**")
-                            .allowedOrigins(allowedOrigins)
+                            .allowedOrigins(allowedOrigins.toArray(new String[0]))
                             .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                             .allowedHeaders("*")
                             .allowCredentials(true);
@@ -34,5 +46,4 @@ public class CorsConfig {
             }
         };
     }
-
 }
