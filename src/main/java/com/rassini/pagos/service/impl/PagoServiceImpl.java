@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,14 +29,24 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
 
+import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 @Service
 public class PagoServiceImpl implements PagoService {
+
+     
+
 
     private final PagosArchivoRepository pagosRepo;
     private final CatalogoTipoPagoRepository catalogoRepo;
     private final EmpresaTipoPagoCache cache;
     private final SupplierRepository supplierRepo;
+
+    @Value("${loader.output.path}")
+    private String outputPathBase;
+
 
     public PagoServiceImpl(PagosArchivoRepository pagosRepo,
                            CatalogoTipoPagoRepository catalogoRepo,
@@ -167,39 +178,46 @@ public class PagoServiceImpl implements PagoService {
             return 0;
         }
 
-        // Group by NombreArchivo and TipoPago
         Map<String, Map<String, List<PagosArchivo>>> grouped = pendientes.stream()
             .collect(Collectors.groupingBy(
                 p -> p.getNombreArchivo() == null ? "SinArchivo" : p.getNombreArchivo(),
                 Collectors.groupingBy(
-                    p -> (p.getTipoPago() != null && p.getTipoPago().getDealType() != null) ? p.getTipoPago().getDealType() : "SinTipo"
+                    p -> (p.getTipoPago() != null && p.getTipoPago().getDealType() != null)
+                            ? p.getTipoPago().getDealType()
+                            : "SinTipo"
                 )
             ));
 
         int filesGenerated = 0;
-        String fechaActual = LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy"));
 
         for (Map.Entry<String, Map<String, List<PagosArchivo>>> entryArchivo : grouped.entrySet()) {
             String nombreArchivo = entryArchivo.getKey();
+
             for (Map.Entry<String, List<PagosArchivo>> entryTipo : entryArchivo.getValue().entrySet()) {
                 String tipoPago = entryTipo.getKey();
                 List<PagosArchivo> pagos = entryTipo.getValue();
 
                 String cleanTipoPago = tipoPago.replaceAll("\\s+", "");
                 String baseNombreArchivo = nombreArchivo;
+
                 if (baseNombreArchivo != null && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
                     baseNombreArchivo = baseNombreArchivo.substring(0, baseNombreArchivo.length() - 4);
                 }
+
                 String outputFileName = String.format("%s_%s.txt", cleanTipoPago, baseNombreArchivo);
 
                 List<String> lineas = new ArrayList<>();
+
                 for (PagosArchivo pago : pagos) {
                     Supplier supplier = null;
+
                     if (pago.getCodigoProveedor() != null) {
-                        supplier = supplierRepo.findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(),bu).orElse(null);
+                        supplier = supplierRepo
+                                .findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(), bu)
+                                .orElse(null);
                     }
-                    //agregar validacion de registros duplicados 
-                    if( pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")){
+
+                    if (pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")) {
                         lineas.add(generarLineaLayout(pago, supplier, outputFileName));
                         pago.setNombreArchivoEnvio(outputFileName);
                     } else {
@@ -208,8 +226,18 @@ public class PagoServiceImpl implements PagoService {
                 }
 
                 try {
-                    Path outputPath = Paths.get(outputFileName);
+                    Path outputDir = Paths.get(outputPathBase);
+
+                    if (!Files.exists(outputDir)) {
+                        Files.createDirectories(outputDir);
+                    }
+
+                    Path outputPath = outputDir.resolve(outputFileName);
+
                     Files.write(outputPath, lineas);
+
+                    log.info("Archivo generado en ruta: {}", outputPath.toAbsolutePath());
+
                     filesGenerated++;
                 } catch (IOException e) {
                     throw new BusinessException("Error al generar archivo txt: " + outputFileName);
@@ -220,6 +248,7 @@ public class PagoServiceImpl implements PagoService {
         pagosRepo.saveAll(pendientes);
         return filesGenerated;
     }
+
 
     private String generarLineaLayout(PagosArchivo pago, Supplier supplier, String outputFileName) {
         String[] campos = new String[28];
