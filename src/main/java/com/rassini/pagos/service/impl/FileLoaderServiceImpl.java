@@ -13,6 +13,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.rassini.pagos.constants.ErrorCodes;
 import com.rassini.pagos.entity.PagosArchivo;
 import com.rassini.pagos.entity.Supplier;
 import com.rassini.pagos.repository.PagosArchivoRepository;
@@ -20,7 +21,10 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.util.TxtParser;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class FileLoaderServiceImpl implements FileLoaderService {
 
     private final PagosArchivoRepository repository;
@@ -63,7 +67,20 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     }
 
     private void agregarError(List<String> errores, String mensaje) {
+
+    if (!errores.contains(mensaje)) {
         errores.add(mensaje);
+    }
+}
+
+    private String error(String codigo, String mensaje) {
+        log.info("Error generado: {} - {}", codigo, mensaje);
+        return codigo;
+    }
+
+    private String error(String codigo, String formato, Object... args) {
+        log.info("Error generado: {} - {}", codigo, String.format(formato, args));
+        return codigo;
     }
 
     private void validarLongitud(
@@ -73,10 +90,115 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         List<String> errores) {
 
         if (!isBlank(valor) && valor.trim().length() > longitudMaxima) {
-            agregarError(
-                    errores,
-                    nombreCampo + " excede longitud máxima de " + longitudMaxima
-            );
+
+            switch (nombreCampo) {
+
+                case "Empresa":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR013,
+                                    "Empresa excede longitud máxima de 10"));
+                    break;
+
+                case "Cuenta ordenante":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR014,
+                                    "Cuenta ordenante excede longitud máxima de 35"));
+                    break;
+
+                case "Moneda ordenante":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR015,
+                                    "Moneda ordenante excede longitud máxima de 3"));
+                    break;
+
+                case "Referencia":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR016,
+                                    "Referencia excede longitud máxima de 255"));
+                    break;
+
+                case "Información adicional":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR017,
+                                    "Información adicional excede longitud máxima de 2000"));
+                    break;
+
+                case "Fecha envío":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR018,
+                                    "Fecha envío excede longitud máxima de 10"));
+                    break;
+
+                case "Fecha valor":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR019,
+                                    "Fecha valor excede longitud máxima de 10"));
+                    break;
+
+                case "Moneda":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR020,
+                                    "Moneda excede longitud máxima de 3"));
+                    break;
+
+                case "Código proveedor":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR021,
+                                    "Código proveedor excede longitud máxima de 10"));
+                    break;
+
+                case "Nombre beneficiario":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR022,
+                                    "Nombre beneficiario excede longitud máxima de 35"));
+                    break;
+
+                case "RFC beneficiario":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR023,
+                                    "RFC beneficiario excede longitud máxima de 35"));
+                    break;
+
+                case "Cuenta beneficiario":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR024,
+                                    "Cuenta beneficiario excede longitud máxima de 35"));
+                    break;
+
+                case "Moneda beneficiario":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR025,
+                                    "Moneda beneficiario excede longitud máxima de 3"));
+                    break;
+
+                case "Nombre archivo":
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR026,
+                                    "Nombre archivo excede longitud máxima de 35"));
+                    break;
+
+                default:
+                    agregarError(
+                            errores,
+                            error(ErrorCodes.ERR999,
+                                    "%s excede longitud máxima de %s",
+                                    nombreCampo,
+                                    longitudMaxima));
+            }
         }
     }
 
@@ -85,55 +207,75 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         List<String> errores) {
 
         if (isBlank(supplier.getSupplierName())) {
-            agregarError(errores,
-                    "Supplier Name es obligatorio");
+            agregarError(
+        errores,
+        error(ErrorCodes.ERR032,
+                "Supplier Name es obligatorio"));
+
         }
 
         if (isBlank(supplier.getStreetName())) {
-            agregarError(errores,
-                    "Street Name es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR033,
+                            "Street Name es obligatorio"));
         }
 
         if (isBlank(supplier.getStreetNumber())) {
-            agregarError(errores,
-                    "Street Number es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR034,
+                            "Street Number es obligatorio"));
         }
 
         if (isBlank(supplier.getZipCode())) {
-            agregarError(errores,
-                    "Zip Code es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR035,
+                            "Zip Code es obligatorio"));
         }
 
         if (isBlank(supplier.getCityCode())) {
-            agregarError(errores,
-                    "City Code es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR036,
+                            "City Code es obligatorio"));
         }
 
         if (isBlank(supplier.getStateCode())) {
-            agregarError(errores,
-                    "State Code es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR037,
+                            "State Code es obligatorio"));
         }
 
         if (isBlank(supplier.getCountryCode())) {
-            agregarError(errores,
-                    "Country Code es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR038,
+                            "Country Code es obligatorio"));
         }
 
         if (isBlank(supplier.getBeneficiaryBankName())) {
-            agregarError(errores,
-                    "Beneficiary Bank Name es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR039,
+                            "Beneficiary Bank Name es obligatorio"));
         }
 
         if (isBlank(supplier.getBankCountry())) {
-            agregarError(errores,
-                    "Bank Country es obligatorio");
+            agregarError(
+                    errores,
+                    error(ErrorCodes.ERR040,
+                            "Bank Country es obligatorio"));
         }
         if (isBlank(supplier.getRoutingCodeAba())
             && isBlank(supplier.getRoutingCodeSwift())) {
 
             agregarError(
                     errores,
-                    "Routing Code ABA o SWIFT es obligatorio");
+                    error(ErrorCodes.ERR041,
+                            "Routing Code ABA o SWIFT es obligatorio"));
         }
 
         if (!isBlank(supplier.getIntermediaryAccount())) {
@@ -143,14 +285,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                 agregarError(
                         errores,
-                        "Routing Code intermediario es obligatorio cuando existe cuenta intermediaria");
+                        error(ErrorCodes.ERR042,
+                                "Routing Code intermediario es obligatorio cuando existe cuenta intermediaria"));
             }
 
             if (isBlank(supplier.getIntermediaryAccountCountry())) {
 
                 agregarError(
                         errores,
-                        "País intermediario es obligatorio cuando existe cuenta intermediaria");
+                        error(ErrorCodes.ERR043,
+                                "País intermediario es obligatorio cuando existe cuenta intermediaria"));
             }
         }
     }
@@ -160,51 +304,75 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         List<String> errores) {
 
         if (isBlank(pago.getEmpresa())) {
-            agregarError(errores, "Empresa es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR001, "Empresa es obligatoria"));
         }
 
         if (isBlank(pago.getCuentaOrdenante())) {
-            agregarError(errores, "Cuenta ordenante es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR002, "Cuenta ordenante es obligatoria"));
         }
 
         if (isBlank(pago.getMonedaOrdenante())) {
-            agregarError(errores, "Moneda ordenante es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR003, "Moneda ordenante es obligatoria"));
         }
 
         if (isBlank(pago.getReferencia())) {
-            agregarError(errores, "Referencia es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR004, "Referencia es obligatoria"));
         }
 
         if (isBlank(pago.getFechaEnvio())) {
-            agregarError(errores, "Fecha envío es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR005, "Fecha envío es obligatoria"));
         }
 
         if (isBlank(pago.getFechaValor())) {
-            agregarError(errores, "Fecha valor es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR006, "Fecha valor es obligatoria"));
         }
 
         if (isBlank(pago.getMonto())) {
-            agregarError(errores, "Monto es obligatorio");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR007, "Monto es obligatorio"));
         }
 
         if (isBlank(pago.getMoneda())) {
-            agregarError(errores, "Moneda es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR008, "Moneda es obligatoria"));
         }
 
         if (isBlank(pago.getNombreBeneficiario())) {
-            agregarError(errores, "Nombre beneficiario es obligatorio");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR009, "Nombre beneficiario es obligatorio"));
         }
 
         if (isBlank(pago.getCuentaBeneficiario())) {
-            agregarError(errores, "Cuenta beneficiario es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR010, "Cuenta beneficiario es obligatoria"));
         }
 
         if (isBlank(pago.getMonedaBeneficiario())) {
-            agregarError(errores, "Moneda beneficiario es obligatoria");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR011, "Moneda beneficiario es obligatoria"));
         }
 
         if (isBlank(pago.getNombreArchivo())) {
-            agregarError(errores, "Nombre archivo es obligatorio");
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR012, "Nombre archivo es obligatorio"));
         }
         validarLongitud(
         pago.getEmpresa(),
@@ -301,14 +469,14 @@ public class FileLoaderServiceImpl implements FileLoaderService {
             
             agregarError(
                 errores,
-                "No es posible validar supplier porque Empresa viene vacía");
+                error(ErrorCodes.ERR027, "No es posible validar supplier porque Empresa viene vacía"));
             return null;
         }
 
         if (isBlank(pago.getCuentaBeneficiario())) {
             agregarError(
                     errores,
-                    "No es posible validar supplier porque Cuenta Beneficiario viene vacía");
+                    error(ErrorCodes.ERR028, "No es posible validar supplier porque Cuenta Beneficiario viene vacía"));
             return null;
         }
 
@@ -317,7 +485,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         if (cuentaBeneficiario.length() < 8) {
             agregarError(
                     errores,
-                    "Cuenta Beneficiario debe tener al menos 8 caracteres");
+                    error(ErrorCodes.ERR029, "Cuenta Beneficiario debe tener al menos 8 caracteres"));
             return null;
         }
 
@@ -329,11 +497,12 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         if (suppliers == null || suppliers.isEmpty()) {
 
             agregarError(
-                    errores,
-                    "No existe supplier para Empresa "
-                            + pago.getEmpresa()
-                            + " y Cuenta Beneficiario "
-                            + pago.getCuentaBeneficiario());
+                errores,
+                error(
+                        ErrorCodes.ERR030,
+                        "No existe supplier para Empresa %s y Cuenta Beneficiario %s",
+                        pago.getEmpresa(),
+                        pago.getCuentaBeneficiario()));
 
             return null;
         }
@@ -341,13 +510,13 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         if (suppliers.size() > 1) {
 
             agregarError(
-                    errores,
-                    "Existe más de un supplier para Empresa "
-                            + pago.getEmpresa()
-                            + " y Cuenta Beneficiario "
-                            + pago.getCuentaBeneficiario()
-                            + " usando últimos 8 caracteres: "
-                            + ultimos8);
+                errores,
+                error(
+                        ErrorCodes.ERR031,
+                        "Existe más de un supplier para Empresa %s y Cuenta Beneficiario %s usando últimos 8 caracteres %s",
+                        pago.getEmpresa(),
+                        pago.getCuentaBeneficiario(),
+                        ultimos8));
 
             return null;
         }
@@ -442,8 +611,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         //pago.setDuplicado("S");
 
                         agregarError(
-                                errores,
-                                "Registro duplicado en archivo o base de datos");
+                            errores,
+                            error(
+                                    ErrorCodes.ERR044,
+                                    "Registro duplicado en archivo o base de datos"));
 
                     } else {
 
