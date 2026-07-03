@@ -12,18 +12,32 @@ import com.rassini.pagos.entity.PagosArchivo;
 
 public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long> {
 
-    boolean existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(String nombreArchivo, String monto, String codigoProveedor, String fechaEnvio);
+    boolean existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
+            String nombreArchivo,
+            String monto,
+            String codigoProveedor,
+            String fechaEnvio);
 
-    List<PagosArchivo> findByEmpresaAndNombreArchivoEnvioIsNull(String empresa);
+    List<PagosArchivo> findByEmpresaAndEstatus(
+            String empresa,
+            String estatus);
 
-    @Query("SELECT p FROM PagosArchivo p WHERE (p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '') AND p.empresa = :empresa ORDER BY p.nombreArchivo")
-    List<PagosArchivo> findPendientesParaValidar(@Param("empresa") String empresa);
+    @Query("""
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'PENDIENTE'
+    AND p.empresa = :empresa
+    ORDER BY p.nombreArchivo
+    """)
+    List<PagosArchivo> findPendientesParaValidar(
+            @Param("empresa") String empresa);
 
     long countByEmpresaAndTipoPagoIsNull(String empresa);
 
     @Query("""
-    SELECT p FROM PagosArchivo p
-    WHERE ( p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '' )
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'PENDIENTE'
     AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
@@ -34,17 +48,18 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             @Param("rfcBeneficiario") String rfcBeneficiario);
 
     @Query("""
-    SELECT p FROM PagosArchivo p
-    WHERE ( p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '' )
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'PENDIENTE'
     AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
     AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
     AND (
-        :estatus IS NULL OR :estatus = '' OR
-        (:estatus = 'Duplicado' AND p.duplicado IN ('S', 'A', 'R')) OR
-        (:estatus = 'Pendiente' AND (p.duplicado IS NULL OR p.duplicado = '')) OR
-        p.duplicado = :estatus
+        :estatus IS NULL
+        OR :estatus = ''
+        OR :estatus = 'Todos'
+        OR p.estatus = :estatus
     )
     """)
     Page<PagosArchivo> filtrarPaginado(
@@ -54,10 +69,11 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             @Param("tipoPago") String tipoPago,
             @Param("estatus") String estatus,
             Pageable pageable);
-    
+
     @Query("""
-    SELECT p FROM PagosArchivo p
-    WHERE ( p.nombreArchivoEnvio IS NOT NULL AND p.nombreArchivoEnvio <> '' )
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'ENVIADO'
     AND p.empresa = :empresa
     AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
     AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
@@ -68,13 +84,28 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             @Param("rfcBeneficiario") String rfcBeneficiario,
             Pageable pageable);
 
-@Query("""
-    SELECT p FROM PagosArchivo p
-    WHERE (p.nombreArchivoEnvio IS NULL OR p.nombreArchivoEnvio = '')
+    @Query("""
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'ERROR'
+    AND p.empresa = :empresa
+    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+    """)
+    Page<PagosArchivo> filtrarErroresPaginado(
+            @Param("empresa") String empresa,
+            @Param("codigoProveedor") String codigoProveedor,
+            @Param("rfcBeneficiario") String rfcBeneficiario,
+            Pageable pageable);
+
+    @Query("""
+    SELECT p
+    FROM PagosArchivo p
+    WHERE p.estatus = 'PENDIENTE'
     AND p.empresa = :empresa
     AND p.tipoPago IS NOT NULL
     ORDER BY p.nombreArchivo, p.tipoPago.dealType
     """)
-    List<PagosArchivo> findPendientesPorEnviar(@Param("empresa") String empresa);
-
+    List<PagosArchivo> findPendientesPorEnviar(
+            @Param("empresa") String empresa);
 }

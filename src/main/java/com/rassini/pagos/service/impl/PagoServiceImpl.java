@@ -64,7 +64,7 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public List<PagoPendienteDTO> obtenerSinClasificar(String bu) {
 
-        return pagosRepo.findByEmpresaAndNombreArchivoEnvioIsNull(bu)
+        return pagosRepo.findByEmpresaAndEstatus(bu, "PENDIENTE")
                 .stream()
                 .map(PagoMapper::toDTO)
                 .collect(Collectors.toList());
@@ -102,11 +102,7 @@ public class PagoServiceImpl implements PagoService {
                         " (pago id: " + item.getId() + ")"
                 );
             }
-            if(item.getDecisionDuplicado() != null && !item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Aceptar")) {
-                pago.setDuplicado("A");
-            } else if( item.getDecisionDuplicado() != null && !item.getDecisionDuplicado().isEmpty() && item.getDecisionDuplicado().equals("Rechazar") ){
-                pago.setDuplicado("R");
-            }
+            
             pago.setTipoPago(tipo);
             pagosActualizar.add(pago);
         }
@@ -134,6 +130,23 @@ public class PagoServiceImpl implements PagoService {
     public Page<PagoPendienteDTO> filtrarEnviadosPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
         return pagosRepo.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable)
                 .map(PagoMapper::toDTO);
+    }
+
+    @Override
+    public Page<PagoPendienteDTO> filtrarErroresPaginado(
+            String bu,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            Pageable pageable) {
+
+        return pagosRepo
+                .filtrarErroresPaginado(
+                        bu,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        pageable)
+                .map(PagoMapper::toDTO);
+
     }
 
     @Override
@@ -220,8 +233,10 @@ public class PagoServiceImpl implements PagoService {
                     if (pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")) {
                         lineas.add(generarLineaLayout(pago, supplier, outputFileName));
                         pago.setNombreArchivoEnvio(outputFileName);
+                        pago.setEstatus("ENVIADO");
                     } else {
                         pago.setNombreArchivoEnvio(outputFileName);
+                        pago.setEstatus("ENVIADO");
                     }
                 }
 
@@ -325,5 +340,29 @@ public class PagoServiceImpl implements PagoService {
 
     private String nvl(String val) {
         return val == null ? "" : val;
+    }
+
+    @Override
+    public void rechazarPago(Long id) {
+
+        PagosArchivo pago = pagosRepo.findById(id)
+                .orElseThrow(() ->
+                        new BusinessException("Pago no encontrado: " + id));
+
+        pago.setEstatus("RECHAZADO");
+
+        pagosRepo.save(pago);
+    }
+
+    @Override
+    public void rechazarPagos(List<Long> ids) {
+
+        List<PagosArchivo> pagos =
+                pagosRepo.findAllById(ids);
+
+        pagos.forEach(p ->
+                p.setEstatus("RECHAZADO"));
+
+        pagosRepo.saveAll(pagos);
     }
 }

@@ -1,0 +1,16 @@
+ALTER TABLE pagos_archivo
+ADD COLUMN estatus VARCHAR(20);
+
+UPDATE pagos_archivo
+SET estatus = 'ENVIADO'
+WHERE nombre_archivo_envio IS NOT NULL;
+
+UPDATE pagos_archivo
+SET estatus = 'ERROR'
+WHERE mensaje IS NOT NULL
+  AND TRIM(mensaje) <> '';
+
+UPDATE pagos_archivo
+SET estatus = 'PENDIENTE'
+WHERE estatus IS NULL;
+
