@@ -21,10 +21,10 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.util.TxtParser;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 @Service
-@Slf4j
 public class FileLoaderServiceImpl implements FileLoaderService {
 
     private final PagosArchivoRepository repository;
@@ -43,7 +43,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     public void cargarArchivos() {
 
         File folder = new File(rutaCarpeta);
-                    System.out.println(folder);
+                    log.info(folder);
 
 
         if (!folder.exists() || !folder.isDirectory()) {
@@ -53,7 +53,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         File[] archivos = folder.listFiles((dir, name) -> name.endsWith(".txt"));
 
         if (archivos == null || archivos.length == 0) {
-            System.out.println("No hay archivos para procesar");
+            log.info("No hay archivos para procesar");
             return;
         }
 
@@ -639,7 +639,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
                 } catch (Exception e) {
-                    System.out.println("Error en línea: " + line);
+                    log.info("Error en línea: " + line);
                 }
             }
 
@@ -647,7 +647,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 repository.saveAll(batch);
             }
 
-            System.out.println("Archivo procesado: " + archivo.getName());
+            log.info("Archivo procesado: " + archivo.getName());
 
         } catch (Exception e) {
             throw new RuntimeException("Error procesando archivo: " + archivo.getName(), e);

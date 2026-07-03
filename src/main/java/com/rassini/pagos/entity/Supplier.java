@@ -127,5 +127,7 @@ public class Supplier {
     @Column(name = "contact_name")
     private String contactName;
 
-    
+ 
+
+
 }

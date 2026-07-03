@@ -1,4 +1,4 @@
-name: CI PROD
+name: CI CD MS-PAGOS
 
 on:
   push:
