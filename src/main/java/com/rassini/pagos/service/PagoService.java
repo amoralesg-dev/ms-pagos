@@ -22,7 +22,13 @@ public interface PagoService {
 
     Page<PagoPendienteDTO> filtrarEnviadosPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
 
+    Page<PagoPendienteDTO> filtrarErroresPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable);
+
     int validarPagosPendientes(String bu);
 
     int enviarPagosPendientes(String bu);
+
+    void rechazarPago(Long id);
+
+    void rechazarPagos(List<Long> ids);
 }

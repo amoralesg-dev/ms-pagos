@@ -99,6 +99,10 @@ public class PagosArchivo {
     @Column(name = "mensaje", columnDefinition = "TEXT")
     private String mensaje;
 
+    @Column(name = "estatus")
+    private String estatus;
+    
+
     //  FK por deal_type (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deal_type", referencedColumnName = "deal_type")

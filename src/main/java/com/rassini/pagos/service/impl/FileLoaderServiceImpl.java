@@ -625,8 +625,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                     if (!errores.isEmpty()) {
                         pago.setMensaje(String.join(" | ", errores));
+                        pago.setEstatus("ERROR");
                     } else {
                         pago.setMensaje(null);
+                        pago.setEstatus("PENDIENTE");
                     }
 
                     batch.add(pago);
