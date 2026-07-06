@@ -111,5 +111,7 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
 
         List<PagosArchivo> findByNombreArchivo(String nombreArchivo);
 
-        List<PagosArchivo> findByNombreArchivoIn(List<String> nombresArchivo);
+        List<PagosArchivo> findByNombreArchivoAndEstatus(String nombreArchivo,String estatus);
+        
+        List<PagosArchivo> findByNombreArchivoInAndEstatus(List<String> nombresArchivo,String estatus);
 }

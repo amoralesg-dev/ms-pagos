@@ -25,6 +25,11 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
 
+                System.out.println("=================================");
+                System.out.println("ALLOWED ORIGINS");
+                allowedOrigins.forEach(System.out::println);
+                System.out.println("=================================");
+
                 if (allowedOrigins != null 
                     && allowedOrigins.size() == 1 
                     && "*".equals(allowedOrigins.get(0))) {
