@@ -139,13 +139,17 @@ public class PagoServiceImpl implements PagoService {
             String rfcBeneficiario,
             Pageable pageable) {
 
-        return pagosRepo
+        Page<PagoPendienteDTO> page =pagosRepo
                 .filtrarErroresPaginado(
                         bu,
                         codigoProveedor,
                         rfcBeneficiario,
                         pageable)
                 .map(PagoMapper::toDTO);
+
+                log.info("Filtrar errores paginado: bu={}, codigoProveedor={}, rfcBeneficiario={}, page={}, size={}, totalElements={}",
+                        bu, codigoProveedor, rfcBeneficiario, pageable.getPageNumber(), pageable.getPageSize(), pageable.getOffset());
+        return page;
 
     }
 
@@ -350,8 +354,8 @@ public class PagoServiceImpl implements PagoService {
                         new BusinessException("Pago no encontrado: " + id));
 
         List<PagosArchivo> pagos =
-                pagosRepo.findByNombreArchivo(
-                        pago.getNombreArchivo());
+                pagosRepo.findByNombreArchivoAndEstatus(
+                        pago.getNombreArchivo(),"ERROR");
 
         pagos.forEach(p ->
                 p.setEstatus("RECHAZADO"));
@@ -373,8 +377,8 @@ public class PagoServiceImpl implements PagoService {
                         .toList();
 
         List<PagosArchivo> pagos =
-                pagosRepo.findByNombreArchivoIn(
-                        archivos);
+                pagosRepo.findByNombreArchivoInAndEstatus(
+                        archivos,"ERROR");
 
         pagos.forEach(p ->
                 p.setEstatus("RECHAZADO"));

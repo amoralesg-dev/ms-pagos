@@ -156,13 +156,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Código proveedor excede longitud máxima de 10"));
                     break;
 
-                case "Nombre beneficiario":
-                    agregarError(
-                            errores,
-                            error(ErrorCodes.ERR022,
-                                    "Nombre beneficiario excede longitud máxima de 35"));
-                    break;
-
                 case "RFC beneficiario":
                     agregarError(
                             errores,
@@ -428,11 +421,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 "Código proveedor",
                 errores);
 
-        validarLongitud(
-                pago.getNombreBeneficiario(),
-                35,
-                "Nombre beneficiario",
-                errores);
+        pago.setNombreBeneficiario(pago.getNombreBeneficiario().trim().substring(0, 35));
 
         validarLongitud(
                 pago.getRfcBeneficiario(),
