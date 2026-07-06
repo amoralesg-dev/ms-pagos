@@ -12,100 +12,104 @@ import com.rassini.pagos.entity.PagosArchivo;
 
 public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long> {
 
-    boolean existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
-            String nombreArchivo,
-            String monto,
-            String codigoProveedor,
-            String fechaEnvio);
+        boolean existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
+                        String nombreArchivo,
+                        String monto,
+                        String codigoProveedor,
+                        String fechaEnvio);
 
-    List<PagosArchivo> findByEmpresaAndEstatus(
-            String empresa,
-            String estatus);
+        List<PagosArchivo> findByEmpresaAndEstatus(
+                        String empresa,
+                        String estatus);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'PENDIENTE'
-    AND p.empresa = :empresa
-    ORDER BY p.nombreArchivo
-    """)
-    List<PagosArchivo> findPendientesParaValidar(
-            @Param("empresa") String empresa);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'PENDIENTE'
+                        AND p.empresa = :empresa
+                        ORDER BY p.nombreArchivo
+                        """)
+        List<PagosArchivo> findPendientesParaValidar(
+                        @Param("empresa") String empresa);
 
-    long countByEmpresaAndTipoPagoIsNull(String empresa);
+        long countByEmpresaAndTipoPagoIsNull(String empresa);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'PENDIENTE'
-    AND p.empresa = :empresa
-    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-    """)
-    List<PagosArchivo> filtrar(
-            @Param("empresa") String empresa,
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'PENDIENTE'
+                        AND p.empresa = :empresa
+                        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+                        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+                        """)
+        List<PagosArchivo> filtrar(
+                        @Param("empresa") String empresa,
+                        @Param("codigoProveedor") String codigoProveedor,
+                        @Param("rfcBeneficiario") String rfcBeneficiario);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'PENDIENTE'
-    AND p.empresa = :empresa
-    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-    AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
-    AND (
-        :estatus IS NULL
-        OR :estatus = ''
-        OR :estatus = 'Todos'
-        OR p.estatus = :estatus
-    )
-    """)
-    Page<PagosArchivo> filtrarPaginado(
-            @Param("empresa") String empresa,
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario,
-            @Param("tipoPago") String tipoPago,
-            @Param("estatus") String estatus,
-            Pageable pageable);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'PENDIENTE'
+                        AND p.empresa = :empresa
+                        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+                        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+                        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
+                        AND (
+                            :estatus IS NULL
+                            OR :estatus = ''
+                            OR :estatus = 'Todos'
+                            OR p.estatus = :estatus
+                        )
+                        """)
+        Page<PagosArchivo> filtrarPaginado(
+                        @Param("empresa") String empresa,
+                        @Param("codigoProveedor") String codigoProveedor,
+                        @Param("rfcBeneficiario") String rfcBeneficiario,
+                        @Param("tipoPago") String tipoPago,
+                        @Param("estatus") String estatus,
+                        Pageable pageable);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'ENVIADO'
-    AND p.empresa = :empresa
-    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-    """)
-    Page<PagosArchivo> filtrarEnviadosPaginado(
-            @Param("empresa") String empresa,
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario,
-            Pageable pageable);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'ENVIADO'
+                        AND p.empresa = :empresa
+                        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+                        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+                        """)
+        Page<PagosArchivo> filtrarEnviadosPaginado(
+                        @Param("empresa") String empresa,
+                        @Param("codigoProveedor") String codigoProveedor,
+                        @Param("rfcBeneficiario") String rfcBeneficiario,
+                        Pageable pageable);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'ERROR'
-    AND p.empresa = :empresa
-    AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-    AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-    """)
-    Page<PagosArchivo> filtrarErroresPaginado(
-            @Param("empresa") String empresa,
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario,
-            Pageable pageable);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'ERROR'
+                        AND p.empresa = :empresa
+                        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
+                        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+                        """)
+        Page<PagosArchivo> filtrarErroresPaginado(
+                        @Param("empresa") String empresa,
+                        @Param("codigoProveedor") String codigoProveedor,
+                        @Param("rfcBeneficiario") String rfcBeneficiario,
+                        Pageable pageable);
 
-    @Query("""
-    SELECT p
-    FROM PagosArchivo p
-    WHERE p.estatus = 'PENDIENTE'
-    AND p.empresa = :empresa
-    AND p.tipoPago IS NOT NULL
-    ORDER BY p.nombreArchivo, p.tipoPago.dealType
-    """)
-    List<PagosArchivo> findPendientesPorEnviar(
-            @Param("empresa") String empresa);
+        @Query("""
+                        SELECT p
+                        FROM PagosArchivo p
+                        WHERE p.estatus = 'PENDIENTE'
+                        AND p.empresa = :empresa
+                        AND p.tipoPago IS NOT NULL
+                        ORDER BY p.nombreArchivo, p.tipoPago.dealType
+                        """)
+        List<PagosArchivo> findPendientesPorEnviar(
+                        @Param("empresa") String empresa);
+
+        List<PagosArchivo> findByNombreArchivo(String nombreArchivo);
+
+        List<PagosArchivo> findByNombreArchivoIn(List<String> nombresArchivo);
 }
