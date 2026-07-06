@@ -349,20 +349,37 @@ public class PagoServiceImpl implements PagoService {
                 .orElseThrow(() ->
                         new BusinessException("Pago no encontrado: " + id));
 
-        pago.setEstatus("RECHAZADO");
-
-        pagosRepo.save(pago);
-    }
-
-    @Override
-    public void rechazarPagos(List<Long> ids) {
-
         List<PagosArchivo> pagos =
-                pagosRepo.findAllById(ids);
+                pagosRepo.findByNombreArchivo(
+                        pago.getNombreArchivo());
 
         pagos.forEach(p ->
                 p.setEstatus("RECHAZADO"));
 
         pagosRepo.saveAll(pagos);
+
+    }
+
+    @Override
+    public void rechazarPagos(List<Long> ids) {
+
+        List<PagosArchivo> seleccionados =
+                pagosRepo.findAllById(ids);
+
+        List<String> archivos =
+                seleccionados.stream()
+                        .map(PagosArchivo::getNombreArchivo)
+                        .distinct()
+                        .toList();
+
+        List<PagosArchivo> pagos =
+                pagosRepo.findByNombreArchivoIn(
+                        archivos);
+
+        pagos.forEach(p ->
+                p.setEstatus("RECHAZADO"));
+
+        pagosRepo.saveAll(pagos);
+
     }
 }
