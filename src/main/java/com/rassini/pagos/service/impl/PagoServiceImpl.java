@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
+
+import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.log4j.Log4j2;
@@ -269,8 +272,12 @@ public class PagoServiceImpl implements PagoService {
     }
 
 
-    private String generarLineaLayout(PagosArchivo pago, Supplier supplier, String outputFileName) {
+    private String generarLineaLayout(PagosArchivo pago,
+                                  Supplier supplier,
+                                  String outputFileName) {
+
         String[] campos = new String[28];
+
         campos[0] = nvl(pago.getEmpresa());
         campos[1] = nvl(pago.getCuentaOrdenante());
         campos[2] = nvl(pago.getMonedaOrdenante());
@@ -292,7 +299,11 @@ public class PagoServiceImpl implements PagoService {
             supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
             supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
             supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
-            throw new BusinessException("El proveedor no cuenta con la información completa");
+
+            throw new BusinessException(
+                "El proveedor " + pago.getCodigoProveedor() +
+                " no cuenta con la información completa para generar el layout"
+            );
         }
 
         campos[13] = nvl(supplier.getStreetName());
@@ -305,85 +316,70 @@ public class PagoServiceImpl implements PagoService {
         campos[19] = nvl(pago.getCuentaBeneficiario());
         campos[20] = nvl(pago.getMonedaBeneficiario());
 
-        if (supplier != null) {
-            boolean isBeneficiaryBankValid =
-                java.util.Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
-                java.util.Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
-                java.util.Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
+        boolean isBeneficiaryBankValid =
+            Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
+            Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
+            Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
 
-            if (isBeneficiaryBankValid) {
-                campos[21] = nvl(supplier.getBeneficiaryBankName());
-            } else {
-                campos[21] = "";
-            }
+        campos[21] = isBeneficiaryBankValid
+            ? nvl(supplier.getBeneficiaryBankName())
+            : "";
 
-            String ruteo = supplier.getRoutingCodeSwift();
-            if (ruteo == null || ruteo.isEmpty()) {
-                ruteo = supplier.getRoutingCodeAba();
-            }
-            campos[22] = nvl(ruteo);
+        String ruteo = supplier.getRoutingCodeSwift();
 
-            campos[23] = nvl(supplier.getBankCountry());
-            campos[24] = nvl(supplier.getIntermediaryAccount());
-
-            String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
-            if (intRuteo == null || intRuteo.isEmpty()) {
-                intRuteo = supplier.getIntermediaryRoutingCodeAba();
-            }
-            campos[25] = nvl(intRuteo);
-
-            campos[26] = nvl(supplier.getIntermediaryAccountCountry());
-        } else {
-            campos[21] = campos[22] = campos[23] = campos[24] = campos[25] = campos[26] = "";
+        if (ruteo == null || ruteo.isBlank()) {
+            ruteo = supplier.getRoutingCodeAba();
         }
+
+        campos[22] = nvl(ruteo);
+
+        campos[23] = nvl(supplier.getBankCountry());
+        campos[24] = nvl(supplier.getIntermediaryAccount());
+
+        String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
+
+        if (intRuteo == null || intRuteo.isBlank()) {
+            intRuteo = supplier.getIntermediaryRoutingCodeAba();
+        }
+
+        campos[25] = nvl(intRuteo);
+
+        campos[26] = nvl(supplier.getIntermediaryAccountCountry());
 
         campos[27] = nvl(outputFileName);
 
         return String.join("|", campos);
     }
-
     private String nvl(String val) {
         return val == null ? "" : val;
     }
 
     @Override
+    @Transactional
     public void rechazarPago(Long id) {
 
         PagosArchivo pago = pagosRepo.findById(id)
-                .orElseThrow(() ->
-                        new BusinessException("Pago no encontrado: " + id));
+            .orElseThrow(() ->
+                new BusinessException("Pago no encontrado: " + id));
 
-        List<PagosArchivo> pagos =
-                pagosRepo.findByNombreArchivoAndEstatus(
-                        pago.getNombreArchivo(),"ERROR");
+        pago.setEstatus("RECHAZADO");
 
-        pagos.forEach(p ->
-                p.setEstatus("RECHAZADO"));
-
-        pagosRepo.saveAll(pagos);
+        pagosRepo.save(pago);
 
     }
 
     @Override
+    @Transactional
     public void rechazarPagos(List<Long> ids) {
 
-        List<PagosArchivo> seleccionados =
-                pagosRepo.findAllById(ids);
-
-        List<String> archivos =
-                seleccionados.stream()
-                        .map(PagosArchivo::getNombreArchivo)
-                        .distinct()
-                        .toList();
-
         List<PagosArchivo> pagos =
-                pagosRepo.findByNombreArchivoInAndEstatus(
-                        archivos,"ERROR");
+            pagosRepo.findAllById(ids);
 
         pagos.forEach(p ->
-                p.setEstatus("RECHAZADO"));
+            p.setEstatus("RECHAZADO"));
 
         pagosRepo.saveAll(pagos);
 
     }
+    
 }
