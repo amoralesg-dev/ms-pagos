@@ -421,7 +421,9 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 "Código proveedor",
                 errores);
 
-        pago.setNombreBeneficiario(pago.getNombreBeneficiario().trim().substring(0, 35));
+        if (pago.getNombreBeneficiario() != null && pago.getNombreBeneficiario().length() > 35) {
+            pago.setNombreBeneficiario(pago.getNombreBeneficiario().trim().substring(0, 35));
+        }
 
         validarLongitud(
                 pago.getRfcBeneficiario(),
