@@ -81,8 +81,7 @@ public class PagoController {
     @GetMapping("/errores/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarErroresPaginado(
             @RequestParam String bu,
-            @RequestParam(required = false) String codigoProveedor,
-            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
@@ -90,8 +89,7 @@ public class PagoController {
 
         return service.filtrarErroresPaginado(
                 bu,
-                codigoProveedor,
-                rfcBeneficiario,
+                search,
                 pageable);
     }
 

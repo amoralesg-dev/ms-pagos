@@ -189,16 +189,25 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                         @Param("codigoProveedor") String codigoProveedor,
                         @Param("rfcBeneficiario") String rfcBeneficiario,
                         Pageable pageable);
+
         @Query("""
         SELECT p
         FROM PagosArchivo p
         WHERE p.estatus = 'ERROR'
-        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+        AND (
+            :search IS NULL
+            OR :search = ''
+            OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.monto) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.moneda) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
         """)
         Page<PagosArchivo> filtrarErroresPaginadoAll(
-                @Param("codigoProveedor") String codigoProveedor,
-                @Param("rfcBeneficiario") String rfcBeneficiario,
+                @Param("search") String search,
                 Pageable pageable);
         
 
@@ -207,13 +216,21 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         FROM PagosArchivo p
         WHERE p.estatus = 'ERROR'
         AND p.empresa IN :empresas
-        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
+        AND (
+            :search IS NULL
+            OR :search = ''
+            OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.monto) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.moneda) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
         """)
         Page<PagosArchivo> filtrarErroresPaginadoMultiBu(
                 @Param("empresas") List<String> empresas,
-                @Param("codigoProveedor") String codigoProveedor,
-                @Param("rfcBeneficiario") String rfcBeneficiario,
+                @Param("search") String search,
                 Pageable pageable);
 
         @Query("""

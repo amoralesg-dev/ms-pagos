@@ -193,8 +193,7 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public Page<PagoPendienteDTO> filtrarErroresPaginado(
             String bu,
-            String codigoProveedor,
-            String rfcBeneficiario,
+            String search,
             Pageable pageable) {
 
         Page<PagosArchivo> page;
@@ -202,16 +201,14 @@ public class PagoServiceImpl implements PagoService {
         if (BuUtils.isAll(bu)) {
 
             page = pagosRepo.filtrarErroresPaginadoAll(
-                    codigoProveedor,
-                    rfcBeneficiario,
+                    search,
                     pageable);
 
         } else {
 
             page = pagosRepo.filtrarErroresPaginadoMultiBu(
                     BuUtils.splitBus(bu),
-                    codigoProveedor,
-                    rfcBeneficiario,
+                    search,
                     pageable);
 
         }
