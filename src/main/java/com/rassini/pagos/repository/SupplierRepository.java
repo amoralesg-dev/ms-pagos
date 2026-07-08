@@ -14,6 +14,8 @@ import com.rassini.pagos.entity.Supplier;
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     Optional<Supplier> findFirstByErpIdQadAndBusinessUnitCode(String supplierCode, String businessUnitCode);
+
+    Optional<Supplier> findByErpIdQad(String supplierCode);
     
     List<Supplier> findByBusinessUnitCodeAndAccountNumber(
         String businessUnitCode,

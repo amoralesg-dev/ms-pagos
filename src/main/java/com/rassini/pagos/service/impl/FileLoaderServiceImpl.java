@@ -455,6 +455,13 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         List<String> errores,
         Map<String, List<Supplier>> indiceSuppliers) {
 
+        if(!supplierRepository.findByErpIdQad(pago.getCodigoProveedor()).isPresent()) {
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR045, "No existe supplier para el código proveedor %s", pago.getCodigoProveedor()));
+            return null;
+        }
+
         if (isBlank(pago.getEmpresa())) {
 
             
