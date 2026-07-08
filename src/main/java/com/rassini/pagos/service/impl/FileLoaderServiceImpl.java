@@ -452,8 +452,14 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
     private Supplier validarYObtenerSupplier(
         PagosArchivo pago,
-        List<String> errores,
-        Map<String, List<Supplier>> indiceSuppliers) {
+        List<String> errores) {
+
+        if(!supplierRepository.findByErpIdQad(pago.getCodigoProveedor()).isPresent()) {
+            agregarError(
+                errores,
+                error(ErrorCodes.ERR045, "No existe supplier para el código proveedor %s", pago.getCodigoProveedor()));
+            return null;
+        }
 
         if (isBlank(pago.getEmpresa())) {
 
@@ -483,7 +489,11 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         String ultimos8 = cuentaBeneficiario.substring(
                 cuentaBeneficiario.length() - 8);
 
-        List<Supplier> suppliers = indiceSuppliers.get(ultimos8);
+        
+        List<Supplier> suppliers = supplierRepository.findByEmpresaAndAccountNumberEndsWith(
+                pago.getEmpresa(),
+                ultimos8);
+
 
         if (suppliers == null || suppliers.isEmpty()) {
 
@@ -491,9 +501,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 errores,
                 error(
                         ErrorCodes.ERR030,
-                        "No existe supplier para Empresa %s y Cuenta Beneficiario %s",
-                        pago.getEmpresa(),
-                        pago.getCuentaBeneficiario()));
+                        "La cuenta beneficiaria del proveedor, no existe en Integrity."));
 
             return null;
         }
@@ -504,7 +512,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 errores,
                 error(
                         ErrorCodes.ERR031,
-                        "Existe más de un supplier para Empresa %s y Cuenta Beneficiario %s usando últimos 8 caracteres %s",
+                        "Existe más de un supplier para Empresa y Cuenta Beneficiario usando últimos 8 caracteres",
                         pago.getEmpresa(),
                         pago.getCuentaBeneficiario(),
                         ultimos8));
@@ -515,33 +523,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         return suppliers.get(0);
     }
 
-    private Map<String, List<Supplier>> obtenerIndiceSuppliersPorEmpresa(
-        String empresa,
-        Map<String, Map<String, List<Supplier>>> indicesPorEmpresa) {
-
-        if (isBlank(empresa)) {
-            return new HashMap<>();
-        }
-
-        String empresaNormalizada = empresa.trim();
-
-        if (indicesPorEmpresa.containsKey(empresaNormalizada)) {
-            return indicesPorEmpresa.get(empresaNormalizada);
-        }
-
-        List<Supplier> suppliers =
-                supplierRepository.findByBusinessUnitCodeAndAccountNumberIsNotNull(
-                        empresaNormalizada
-                );
-
-        Map<String, List<Supplier>> indice =
-                construirIndiceSuppliersPorUltimos8(suppliers);
-
-        indicesPorEmpresa.put(empresaNormalizada, indice);
-
-        return indice;
-    }
-
+    
     private void procesarArchivo(File archivo) {
 
         List<PagosArchivo> batch = new ArrayList<>();
@@ -551,7 +533,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
             String line;
 
-            Map<String, Map<String, List<Supplier>>> indicesPorEmpresa = new HashMap<>();
 
             while ((line = br.readLine()) != null) {
 
@@ -562,16 +543,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                     validarCamposPagosArchivo(pago, errores);
 
-                    Map<String, List<Supplier>> indiceSuppliers =
-            obtenerIndiceSuppliersPorEmpresa(
-                pago.getEmpresa(),
-                indicesPorEmpresa);
-
                 Supplier supplier =
                         validarYObtenerSupplier(
                                 pago,
-                                errores,
-                                indiceSuppliers);
+                                errores);
 
                     if (supplier != null) {
                         validarCamposSupplier(
@@ -599,8 +574,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                     if (existeDuplicado) {
 
-                        //pago.setDuplicado("S");
-
                         agregarError(
                             errores,
                             error(
@@ -608,8 +581,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Registro duplicado en archivo o base de datos"));
 
                     } else {
-
-                        //pago.setDuplicado("N");
 
                         registrosProcesados.add(uniqueKey);
                     }
@@ -645,31 +616,5 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
     }
 
-    private Map<String, List<Supplier>> construirIndiceSuppliersPorUltimos8(
-        List<Supplier> suppliers) {
-
-        Map<String, List<Supplier>> index = new HashMap<>();
-
-        for (Supplier supplier : suppliers) {
-
-            if (isBlank(supplier.getAccountNumber())) {
-                continue;
-            }
-
-            String accountNumber = supplier.getAccountNumber().trim();
-
-            if (accountNumber.length() < 8) {
-                continue;
-            }
-
-            String ultimos8 = accountNumber.substring(accountNumber.length() - 8);
-
-            index.computeIfAbsent(ultimos8, key -> new ArrayList<>())
-                    .add(supplier);
-        }
-
-        return index;
-    }
-
-
+    
 }

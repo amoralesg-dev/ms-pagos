@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import com.rassini.pagos.dto.ClasificarPagoItem;
@@ -29,6 +31,7 @@ import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
+import com.rassini.pagos.util.BuUtils;
 
 import jakarta.transaction.Transactional;
 
@@ -39,9 +42,6 @@ import lombok.extern.log4j.Log4j2;
 @Service
 public class PagoServiceImpl implements PagoService {
 
-     
-
-
     private final PagosArchivoRepository pagosRepo;
     private final CatalogoTipoPagoRepository catalogoRepo;
     private final EmpresaTipoPagoCache cache;
@@ -50,11 +50,10 @@ public class PagoServiceImpl implements PagoService {
     @Value("${loader.output.path}")
     private String outputPathBase;
 
-
     public PagoServiceImpl(PagosArchivoRepository pagosRepo,
-                           CatalogoTipoPagoRepository catalogoRepo,
-                           EmpresaTipoPagoCache cache,
-                           SupplierRepository supplierRepo) {
+            CatalogoTipoPagoRepository catalogoRepo,
+            EmpresaTipoPagoCache cache,
+            SupplierRepository supplierRepo) {
         this.pagosRepo = pagosRepo;
         this.catalogoRepo = catalogoRepo;
         this.cache = cache;
@@ -62,7 +61,7 @@ public class PagoServiceImpl implements PagoService {
     }
 
     /**
-     *  Obtener pagos sin clasificar
+     * Obtener pagos sin clasificar
      */
     @Override
     public List<PagoPendienteDTO> obtenerSinClasificar(String bu) {
@@ -79,7 +78,7 @@ public class PagoServiceImpl implements PagoService {
     }
 
     /**
-     *  Clasificar pago con validación en cache (sin DB extra)
+     * Clasificar pago con validación en cache (sin DB extra)
      */
     @Override
     public void clasificarPagos(List<ClasificarPagoItem> items, String bu) {
@@ -91,8 +90,11 @@ public class PagoServiceImpl implements PagoService {
             PagosArchivo pago = pagosRepo.findById(item.getId())
                     .orElseThrow(() -> new BusinessException("Pago no encontrado: " + item.getId()));
 
-            if (!bu.equals(pago.getEmpresa())) {
-                 throw new BusinessException("El pago no pertenece a la unidad de negocio especificada");
+            if (!BuUtils.isAll(bu)
+            && !BuUtils.splitBus(bu).contains(pago.getEmpresa())) {
+
+                throw new BusinessException(
+                    "El pago no pertenece a la unidad de negocio especificada");
             }
 
             CatalogoTipoPago tipo = catalogoRepo.findByDealType(item.getDealType())
@@ -101,91 +103,181 @@ public class PagoServiceImpl implements PagoService {
             if (!cache.esValido(pago.getEmpresa(), item.getDealType())) {
                 throw new BusinessException(
                         "Tipo '" + item.getDealType() +
-                        "' no permitido para empresa " + pago.getEmpresa() +
-                        " (pago id: " + item.getId() + ")"
-                );
+                                "' no permitido para empresa " + pago.getEmpresa() +
+                                " (pago id: " + item.getId() + ")");
             }
-            
+
             pago.setTipoPago(tipo);
             pagosActualizar.add(pago);
         }
 
         pagosRepo.saveAll(pagosActualizar);
-        
+
     }
 
     @Override
     public List<PagoPendienteDTO> filtrarPendientes(String bu, String codigoProveedor, String rfcBeneficiario) {
 
         return pagosRepo.filtrar(bu, codigoProveedor, rfcBeneficiario)
-            .stream()
-            .map(PagoMapper::toDTO)
-            .toList();
+                .stream()
+                .map(PagoMapper::toDTO)
+                .toList();
     }
 
     @Override
-    public Page<PagoPendienteDTO> filtrarPendientesPaginado(String bu, String codigoProveedor, String rfcBeneficiario, String tipoPago, String estatus, Pageable pageable) {
-        return pagosRepo.filtrarPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, pageable)
-                .map(PagoMapper::toDTO);
-    }
+    public Page<PagoPendienteDTO> filtrarPendientesPaginado(
+            String bu,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            String tipoPago,
+            String estatus,
+            Pageable pageable) {
 
-     @Override
-    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(String bu, String codigoProveedor, String rfcBeneficiario, Pageable pageable) {
-        return pagosRepo.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable)
-                .map(PagoMapper::toDTO);
+        Page<PagosArchivo> page;
+
+        if (BuUtils.isAll(bu)) {
+
+            page = pagosRepo.filtrarPaginadoAll(
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    estatus,
+                    pageable);
+
+        } else {
+
+            page = pagosRepo.filtrarPaginadoMultiBu(
+                    BuUtils.splitBus(bu),
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    estatus,
+                    pageable);
+
+        }
+
+        return page.map(PagoMapper::toDTO);
     }
 
     @Override
-    public Page<PagoPendienteDTO> filtrarErroresPaginado(
+    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
             String bu,
             String codigoProveedor,
             String rfcBeneficiario,
             Pageable pageable) {
 
-        Page<PagoPendienteDTO> page =pagosRepo
-                .filtrarErroresPaginado(
-                        bu,
-                        codigoProveedor,
-                        rfcBeneficiario,
-                        pageable)
-                .map(PagoMapper::toDTO);
+        Page<PagosArchivo> page;
 
-                log.info("Filtrar errores paginado: bu={}, codigoProveedor={}, rfcBeneficiario={}, page={}, size={}, totalElements={}",
-                        bu, codigoProveedor, rfcBeneficiario, pageable.getPageNumber(), pageable.getPageSize(), pageable.getOffset());
-        return page;
+        if (BuUtils.isAll(bu)) {
 
+            page = pagosRepo.filtrarEnviadosPaginadoAll(
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    pageable);
+
+        } else {
+
+            page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
+                    BuUtils.splitBus(bu),
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    pageable);
+
+        }
+
+        return page.map(PagoMapper::toDTO);
+    }
+
+    
+
+    @Override
+    public Page<PagoPendienteDTO> filtrarErroresPaginado(
+            String bu,
+            String search,
+            Pageable pageable) {
+
+        Page<PagosArchivo> page;
+
+        if (BuUtils.isAll(bu)) {
+
+            page = pagosRepo.filtrarErroresPaginadoAll(
+                    search,
+                    pageable);
+
+        } else {
+
+            page = pagosRepo.filtrarErroresPaginadoMultiBu(
+                    BuUtils.splitBus(bu),
+                    search,
+                    pageable);
+
+        }
+
+        return page.map(PagoMapper::toDTO);
     }
 
     @Override
     public int validarPagosPendientes(String bu) {
-        List<PagosArchivo> pendientes = pagosRepo.findPendientesParaValidar(bu);
+
+        List<PagosArchivo> pendientes;
+
+        if (BuUtils.isAll(bu)) {
+
+            pendientes = pagosRepo.findPendientesParaValidarAll();
+
+        } else {
+
+            pendientes = pagosRepo.findPendientesParaValidarMultiBu(
+                    BuUtils.splitBus(bu));
+
+        }
+
         if (pendientes == null || pendientes.isEmpty()) {
             return 0;
         }
 
-        String primerNombreArchivo = pendientes.get(0).getNombreArchivo();
+        String primerNombreArchivo =
+                pendientes.get(0).getNombreArchivo();
 
         for (PagosArchivo pago : pendientes) {
-            String nombreArchivo = pago.getNombreArchivo();
+
+            String nombreArchivo =
+                    pago.getNombreArchivo();
+
             if (primerNombreArchivo == null) {
-                if (nombreArchivo != null) return 0;
+
+                if (nombreArchivo != null) {
+                    return 0;
+                }
+
             } else if (!primerNombreArchivo.equals(nombreArchivo)) {
+
                 return 0;
+
             }
-            if(pago.getNombreArchivoEnvio() == null){
+
+            if (pago.getNombreArchivoEnvio() == null) {
                 return 1;
             }
 
-            String nombreArchivoEnvio = pago.getNombreArchivoEnvio();
-            if (nombreArchivoEnvio != null && !nombreArchivoEnvio.trim().isEmpty()) {
+            String nombreArchivoEnvio =
+                    pago.getNombreArchivoEnvio();
+
+            if (nombreArchivoEnvio != null &&
+                !nombreArchivoEnvio.trim().isEmpty()) {
+
                 return 0;
+
             }
 
             if (pago.getTipoPago() == null ||
                 pago.getTipoPago().getDealType() == null ||
                 pago.getTipoPago().getDealType().trim().isEmpty()) {
+
                 return 0;
+
             }
+
         }
 
         return 1;
@@ -193,20 +285,31 @@ public class PagoServiceImpl implements PagoService {
 
     @Override
     public int enviarPagosPendientes(String bu) {
-        List<PagosArchivo> pendientes = pagosRepo.findPendientesPorEnviar(bu);
+
+        List<PagosArchivo> pendientes;
+
+        if (BuUtils.isAll(bu)) {
+
+            pendientes = pagosRepo.findPendientesPorEnviarAll();
+
+        } else {
+
+            pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
+                    BuUtils.splitBus(bu));
+
+        }
+
         if (pendientes == null || pendientes.isEmpty()) {
             return 0;
         }
 
         Map<String, Map<String, List<PagosArchivo>>> grouped = pendientes.stream()
-            .collect(Collectors.groupingBy(
-                p -> p.getNombreArchivo() == null ? "SinArchivo" : p.getNombreArchivo(),
-                Collectors.groupingBy(
-                    p -> (p.getTipoPago() != null && p.getTipoPago().getDealType() != null)
-                            ? p.getTipoPago().getDealType()
-                            : "SinTipo"
-                )
-            ));
+                .collect(Collectors.groupingBy(
+                        p -> p.getNombreArchivo() == null ? "SinArchivo" : p.getNombreArchivo(),
+                        Collectors.groupingBy(
+                                p -> (p.getTipoPago() != null && p.getTipoPago().getDealType() != null)
+                                        ? p.getTipoPago().getDealType()
+                                        : "SinTipo")));
 
         int filesGenerated = 0;
 
@@ -224,7 +327,11 @@ public class PagoServiceImpl implements PagoService {
                     baseNombreArchivo = baseNombreArchivo.substring(0, baseNombreArchivo.length() - 4);
                 }
 
-                String outputFileName = String.format("%s_%s.txt", cleanTipoPago, baseNombreArchivo);
+                String nombreArchivoOutput = cleanTipoPago+baseNombreArchivo;
+                if(nombreArchivoOutput.length() > 31) {
+                    nombreArchivoOutput = nombreArchivoOutput.substring(0, 31);
+                }
+                String outputFileName = String.format("%s.txt", nombreArchivoOutput);
 
                 List<String> lineas = new ArrayList<>();
 
@@ -233,11 +340,12 @@ public class PagoServiceImpl implements PagoService {
 
                     if (pago.getCodigoProveedor() != null) {
                         supplier = supplierRepo
-                                .findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(), bu)
+                                .findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(), pago.getEmpresa())
                                 .orElse(null);
                     }
 
-                    if (pago.getDuplicado() == null || pago.getDuplicado().isEmpty() || pago.getDuplicado().equals("A")) {
+                    if (pago.getDuplicado() == null || pago.getDuplicado().isEmpty()
+                            || pago.getDuplicado().equals("A")) {
                         lineas.add(generarLineaLayout(pago, supplier, outputFileName));
                         pago.setNombreArchivoEnvio(outputFileName);
                         pago.setEstatus("ENVIADO");
@@ -271,10 +379,9 @@ public class PagoServiceImpl implements PagoService {
         return filesGenerated;
     }
 
-
     private String generarLineaLayout(PagosArchivo pago,
-                                  Supplier supplier,
-                                  String outputFileName) {
+            Supplier supplier,
+            String outputFileName) {
 
         String[] campos = new String[28];
 
@@ -293,17 +400,16 @@ public class PagoServiceImpl implements PagoService {
         campos[12] = nvl(pago.getRfcBeneficiario());
 
         if (supplier == null ||
-            supplier.getStreetName() == null || supplier.getStreetName().trim().isEmpty() ||
-            supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
-            supplier.getZipCode() == null || supplier.getZipCode().trim().isEmpty() ||
-            supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
-            supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
-            supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
+                supplier.getStreetName() == null || supplier.getStreetName().trim().isEmpty() ||
+                supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
+                supplier.getZipCode() == null || supplier.getZipCode().trim().isEmpty() ||
+                supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
+                supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
+                supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
 
             throw new BusinessException(
-                "El proveedor " + pago.getCodigoProveedor() +
-                " no cuenta con la información completa para generar el layout"
-            );
+                    "El proveedor " + pago.getCodigoProveedor() +
+                            " no cuenta con la información completa para generar el layout");
         }
 
         campos[13] = nvl(supplier.getStreetName());
@@ -316,14 +422,13 @@ public class PagoServiceImpl implements PagoService {
         campos[19] = nvl(pago.getCuentaBeneficiario());
         campos[20] = nvl(pago.getMonedaBeneficiario());
 
-        boolean isBeneficiaryBankValid =
-            Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
-            Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
-            Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
+        boolean isBeneficiaryBankValid = Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
+                Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
+                Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
 
         campos[21] = isBeneficiaryBankValid
-            ? nvl(supplier.getBeneficiaryBankName())
-            : "";
+                ? nvl(supplier.getBeneficiaryBankName())
+                : "";
 
         String ruteo = supplier.getRoutingCodeSwift();
 
@@ -350,6 +455,7 @@ public class PagoServiceImpl implements PagoService {
 
         return String.join("|", campos);
     }
+
     private String nvl(String val) {
         return val == null ? "" : val;
     }
@@ -359,8 +465,7 @@ public class PagoServiceImpl implements PagoService {
     public void rechazarPago(Long id) {
 
         PagosArchivo pago = pagosRepo.findById(id)
-            .orElseThrow(() ->
-                new BusinessException("Pago no encontrado: " + id));
+                .orElseThrow(() -> new BusinessException("Pago no encontrado: " + id));
 
         pago.setEstatus("RECHAZADO");
 
@@ -372,14 +477,12 @@ public class PagoServiceImpl implements PagoService {
     @Transactional
     public void rechazarPagos(List<Long> ids) {
 
-        List<PagosArchivo> pagos =
-            pagosRepo.findAllById(ids);
+        List<PagosArchivo> pagos = pagosRepo.findAllById(ids);
 
-        pagos.forEach(p ->
-            p.setEstatus("RECHAZADO"));
+        pagos.forEach(p -> p.setEstatus("RECHAZADO"));
 
         pagosRepo.saveAll(pagos);
 
     }
-    
+
 }

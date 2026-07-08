@@ -41,6 +41,7 @@ public final class ErrorCodes {
     public static final String ERR029 = "ERR029";
     public static final String ERR030 = "ERR030";
     public static final String ERR031 = "ERR031";
+    public static final String ERR045 = "ERR045";
 
     // Datos bancarios Supplier
     public static final String ERR032 = "ERR032";
