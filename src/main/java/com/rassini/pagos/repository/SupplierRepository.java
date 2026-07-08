@@ -25,6 +25,19 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     List<Supplier> findByBusinessUnitCodeAndAccountNumberIsNotNull(
         String businessUnitCode);
+    
+    @Query("""
+        SELECT s
+        FROM Supplier s
+        WHERE s.businessUnitCode = :empresa
+        AND s.accountNumber IS NOT NULL
+        AND s.accountNumber LIKE CONCAT('%', :ultimos8)
+        """)
+    List<Supplier> findByEmpresaAndAccountNumberEndsWith(
+        @Param("empresa") String empresa,
+        @Param("ultimos8") String ultimos8);
+
+
 
     
     @Query(value = """

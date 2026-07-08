@@ -40,8 +40,8 @@ public final class ErrorMessages {
         Map.entry(ErrorCodes.ERR027, "No es posible validar supplier porque Empresa viene vacía"),
         Map.entry(ErrorCodes.ERR028, "No es posible validar supplier porque Cuenta Beneficiario viene vacía"),
         Map.entry(ErrorCodes.ERR029, "Cuenta Beneficiario debe tener al menos 8 caracteres"),
-        Map.entry(ErrorCodes.ERR030, "No existe supplier para Empresa y Cuenta Beneficiario"),
-        Map.entry(ErrorCodes.ERR031, "Existe más de un supplier"),
+        Map.entry(ErrorCodes.ERR030, "La cuenta beneficiaria del proveedor, no existe en Integrity."),
+        Map.entry(ErrorCodes.ERR031, "Existe más de un supplier para Empresa y Cuenta Beneficiario usando últimos 8 caracteres"),
 
         Map.entry(ErrorCodes.ERR032, "Supplier Name es obligatorio"),
         Map.entry(ErrorCodes.ERR033, "Street Name es obligatorio"),
