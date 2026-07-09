@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -83,14 +84,35 @@ public class PagoController {
             @RequestParam String bu,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder) {
 
-        Pageable pageable = PageRequest.of(page, size);
+            Pageable pageable;
 
-        return service.filtrarErroresPaginado(
-                bu,
-                search,
-                pageable);
+            if (sortField != null && !sortField.isBlank()) {
+
+                Sort.Direction direction =
+                        "DESC".equalsIgnoreCase(sortOrder)
+                                ? Sort.Direction.DESC
+                                : Sort.Direction.ASC;
+
+                pageable = PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(direction, sortField)
+                );
+
+            } else {
+
+                pageable = PageRequest.of(page, size);
+
+            }
+
+            return service.filtrarErroresPaginado(
+                    bu,
+                    search,
+                    pageable);
     }
 
 
