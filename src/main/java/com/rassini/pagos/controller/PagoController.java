@@ -70,13 +70,42 @@ public class PagoController {
     @GetMapping("/enviados/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
             @RequestParam String bu,
-            @RequestParam(required = false) String codigoProveedor,
-            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
+        Pageable pageable;
+
+        if (sortField != null && !sortField.isBlank()) {
+
+            Sort.Direction direction =
+                    "DESC".equalsIgnoreCase(sortOrder)
+                            ? Sort.Direction.DESC
+                            : Sort.Direction.ASC;
+
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    Sort.by(direction, sortField)
+            );
+
+        } else {
+
+            pageable = PageRequest.of(
+                    page,
+                    size
+            );
+
+        }
+
+        return service.filtrarEnviadosPaginado(
+                bu,
+                search,
+                pageable
+        );
+
     }
 
     @GetMapping("/errores/filtro/paginado")
