@@ -136,45 +136,51 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                 @Param("estatus") String estatus,
                 Pageable pageable);
 
-        @Query("""
-                        SELECT p
-                        FROM PagosArchivo p
-                        WHERE p.estatus = 'ENVIADO'
-                        AND p.empresa = :empresa
-                        AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-                        AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-                        """)
-        Page<PagosArchivo> filtrarEnviadosPaginado(
-                        @Param("empresa") String empresa,
-                        @Param("codigoProveedor") String codigoProveedor,
-                        @Param("rfcBeneficiario") String rfcBeneficiario,
-                        Pageable pageable);
+      
         
         @Query("""
-            SELECT p
-            FROM PagosArchivo p
-            WHERE p.estatus = 'ENVIADO'
-            AND p.empresa IN :empresas
-            AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-            AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-            """)
-    Page<PagosArchivo> filtrarEnviadosPaginadoMultiBu(
-            @Param("empresas") List<String> empresas,
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario,
-            Pageable pageable);
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'ENVIADO'
+        AND p.empresa IN :empresas
+        AND (
+        :search IS NULL
+        OR :search = ''
+        OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        """)
+        Page<PagosArchivo> filtrarEnviadosPaginadoMultiBu(
+                @Param("empresas") List<String> empresas,
+                @Param("search") String search,
+                Pageable pageable);
 
     @Query("""
-            SELECT p
-            FROM PagosArchivo p
-            WHERE p.estatus = 'ENVIADO'
-            AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
-            AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-            """)
-    Page<PagosArchivo> filtrarEnviadosPaginadoAll(
-            @Param("codigoProveedor") String codigoProveedor,
-            @Param("rfcBeneficiario") String rfcBeneficiario,
-            Pageable pageable);
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'ENVIADO'
+        AND (
+        :search IS NULL
+        OR :search = ''
+        OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        """)
+        Page<PagosArchivo> filtrarEnviadosPaginadoAll(
+                @Param("search") String search,
+                Pageable pageable);
 
         @Query("""
                         SELECT p
