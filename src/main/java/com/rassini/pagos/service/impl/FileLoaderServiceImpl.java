@@ -454,7 +454,11 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         PagosArchivo pago,
         List<String> errores) {
 
-        if(!supplierRepository.findFirstByErpIdQadAndBusinessUnitCode(pago.getCodigoProveedor(), pago.getEmpresa()).isPresent()) {
+        
+    List<Supplier> suppliersList = supplierRepository.findByErpIdQad(pago.getCodigoProveedor());
+
+
+        if(suppliersList.isEmpty()) {
             agregarError(
                 errores,
                 error(ErrorCodes.ERR045, "No existe supplier para el código proveedor %s", pago.getCodigoProveedor()));
