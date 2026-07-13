@@ -1,7 +1,8 @@
 package com.rassini.pagos.entity;
 
 public enum XmlStatus {
-    ERROR,
+    PENDING,
     GENERATED,
-    PENDING
+    GENERATED_PREV,
+    ERROR
 }

@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,14 +70,81 @@ public class PagoController {
     @GetMapping("/enviados/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
             @RequestParam String bu,
-            @RequestParam(required = false) String codigoProveedor,
-            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarEnviadosPaginado(bu, codigoProveedor, rfcBeneficiario, pageable);
+        Pageable pageable;
+
+        if (sortField != null && !sortField.isBlank()) {
+
+            Sort.Direction direction =
+                    "DESC".equalsIgnoreCase(sortOrder)
+                            ? Sort.Direction.DESC
+                            : Sort.Direction.ASC;
+
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    Sort.by(direction, sortField)
+            );
+
+        } else {
+
+            pageable = PageRequest.of(
+                    page,
+                    size
+            );
+
+        }
+
+        return service.filtrarEnviadosPaginado(
+                bu,
+                search,
+                pageable
+        );
+
     }
+
+    @GetMapping("/errores/filtro/paginado")
+    public Page<PagoPendienteDTO> filtrarErroresPaginado(
+            @RequestParam String bu,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder) {
+
+            Pageable pageable;
+
+            if (sortField != null && !sortField.isBlank()) {
+
+                Sort.Direction direction =
+                        "DESC".equalsIgnoreCase(sortOrder)
+                                ? Sort.Direction.DESC
+                                : Sort.Direction.ASC;
+
+                pageable = PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(direction, sortField)
+                );
+
+            } else {
+
+                pageable = PageRequest.of(page, size);
+
+            }
+
+            return service.filtrarErroresPaginado(
+                    bu,
+                    search,
+                    pageable);
+    }
+
+
 
     //  clasificar pago
     @PutMapping("/clasificacion")
@@ -99,6 +168,22 @@ public class PagoController {
     @PostMapping("/enviar")
     public int enviarPagos(@RequestParam String bu) {
         return service.enviarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+    }
+
+    @PutMapping("/rechazar/{id}")
+    public String rechazarPago(@PathVariable Long id) {
+
+        service.rechazarPago(id);
+
+        return "Pago rechazado correctamente";
+    }
+    @PutMapping("/rechazar")
+    public String rechazarPagos(
+            @RequestBody List<Long> ids) {
+
+        service.rechazarPagos(ids);
+
+        return "Pagos rechazados correctamente";
     }
 }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
