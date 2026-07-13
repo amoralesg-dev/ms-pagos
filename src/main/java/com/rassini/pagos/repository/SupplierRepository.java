@@ -15,7 +15,9 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     Optional<Supplier> findFirstByErpIdQadAndBusinessUnitCode(String supplierCode, String businessUnitCode);
 
-    Optional<Supplier> findByErpIdQad(String supplierCode);
+    
+
+    List<Supplier> findByErpIdQad(String erpIdQad);
     
     List<Supplier> findByBusinessUnitCodeAndAccountNumber(
         String businessUnitCode,
