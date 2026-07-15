@@ -482,16 +482,13 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
 
         String cuentaBeneficiario = pago.getCuentaBeneficiario().trim();
-
-        if (cuentaBeneficiario.length() < 8) {
-            agregarError(
-                    errores,
-                    error(ErrorCodes.ERR029, "Cuenta Beneficiario debe tener al menos 8 caracteres"));
-            return null;
+        String ultimos8="";
+        if (cuentaBeneficiario!=null && cuentaBeneficiario.length() > 8) {
+            ultimos8 = cuentaBeneficiario.substring(cuentaBeneficiario.length() - 8);
+        }else if(cuentaBeneficiario.length() < 8){
+            ultimos8 = pago.getCuentaBeneficiario().trim();
         }
 
-        String ultimos8 = cuentaBeneficiario.substring(
-                cuentaBeneficiario.length() - 8);
 
         
         List<Supplier> suppliers = supplierRepository.findByEmpresaAndAccountNumberEndsWith(

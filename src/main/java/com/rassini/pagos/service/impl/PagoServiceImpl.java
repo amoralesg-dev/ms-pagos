@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import javax.xml.XMLConstants;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
 import com.rassini.pagos.util.BuUtils;
+import com.rassini.pagos.util.ConstantsSuppliers;
 
 import jakarta.transaction.Transactional;
 
@@ -382,11 +385,16 @@ public class PagoServiceImpl implements PagoService {
 
         String[] campos = new String[28];
 
-        campos[0] = nvl(pago.getEmpresa());
+        campos[0] = nvl(pago.getEmpresa());//
         campos[1] = nvl(pago.getCuentaOrdenante());
         campos[2] = nvl(pago.getMonedaOrdenante());
         campos[3] = nvl(pago.getReferencia());
-        campos[4] = nvl(pago.getInformacionAdicional());
+        if(ConstantsSuppliers.PN.equals(pago.getEmpresa())){
+            campos[4] = nvl(pago.getReferencia());
+        }else{
+            campos[4] = nvl(pago.getInformacionAdicional());
+        }
+        
         campos[5] = nvl(pago.getFechaEnvio());
         campos[6] = nvl(pago.getFechaValor());
         campos[7] = nvl(pago.getMonto());
@@ -419,6 +427,7 @@ public class PagoServiceImpl implements PagoService {
         campos[19] = nvl(pago.getCuentaBeneficiario());
         campos[20] = nvl(pago.getMonedaBeneficiario());
 
+        //al parecer ya no se usara
         boolean isBeneficiaryBankValid = Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
                 Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
                 Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
