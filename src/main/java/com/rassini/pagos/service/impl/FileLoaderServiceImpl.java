@@ -16,9 +16,12 @@ import org.springframework.stereotype.Service;
 import com.rassini.pagos.constants.ErrorCodes;
 import com.rassini.pagos.entity.PagosArchivo;
 import com.rassini.pagos.entity.Supplier;
+import com.rassini.pagos.exception.BusinessException;
+import com.rassini.pagos.exception.BusinessExceptionCode;
 import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.FileLoaderService;
+import com.rassini.pagos.util.EmpresaUtils;
 import com.rassini.pagos.util.TxtParser;
 
 import lombok.extern.log4j.Log4j2;
@@ -482,49 +485,117 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
 
         String cuentaBeneficiario = pago.getCuentaBeneficiario().trim();
-        String ultimos8="";
-        if (cuentaBeneficiario!=null && cuentaBeneficiario.length() > 8) {
-            ultimos8 = cuentaBeneficiario.substring(cuentaBeneficiario.length() - 8);
-        }else if(cuentaBeneficiario.length() < 8){
-            ultimos8 = pago.getCuentaBeneficiario().trim();
-        }
+        String ultimos8=obtenerUltimos8DigitosCuenta(cuentaBeneficiario);
+        String empresaPadre="";
 
-
-        
-        List<Supplier> suppliers = supplierRepository.findByEmpresaAndAccountNumberEndsWith(
-                pago.getEmpresa(),
-                ultimos8);
-
-
-        if (suppliers == null || suppliers.isEmpty()) {
+        try {
+            empresaPadre = EmpresaUtils.obtenerEmpresaPadre(
+                    pago.getEmpresa());
+        } catch (BusinessException e) {
 
             agregarError(
-                errores,
-                error(
-                        ErrorCodes.ERR030,
-                        "La cuenta beneficiaria del proveedor, no existe en Integrity."));
+                    errores,
+                    error(
+                            ErrorCodes.ERR046,
+                            e.getMessage()));
 
             return null;
+        }
+
+        
+        Supplier supplier;
+
+        try {
+            supplier = obtenerSupplierPadrePorCuenta(
+                    pago.getCodigoProveedor(),
+                    pago.getEmpresa(),
+                    ultimos8);
+        } catch (BusinessExceptionCode e) {
+
+            agregarError(
+                    errores,
+                    error(
+                            e.getCodigo(),
+                            e.getMessage()));
+
+            return null;
+        }
+
+        return supplier;
+    }
+
+    @Override
+    public Supplier obtenerSupplierPadre(
+        String codigoProveedor,
+        String empresa) {
+
+        String empresaPadre =
+                EmpresaUtils.obtenerEmpresaPadre(empresa);
+
+        Supplier supplier = (Supplier) supplierRepository
+                .findByErpIdQadAndBusinessUnitCode(
+                        codigoProveedor,
+                        empresaPadre);
+
+        if (supplier == null) {
+            throw new BusinessExceptionCode(
+                    ErrorCodes.ERR045,
+                    String.format(
+                            "No existe supplier para proveedor %s en empresa %s",
+                            codigoProveedor,
+                            empresaPadre));
+        }
+
+        return supplier;
+    }
+
+    @Override
+    public Supplier obtenerSupplierPadrePorCuenta(
+        String codigoProveedor,
+        String empresa,
+        String ultimos8) {
+
+        String empresaPadre =
+                EmpresaUtils.obtenerEmpresaPadre(empresa);
+
+        List<Supplier> suppliers = supplierRepository
+                .findByCodigoProveedorAndEmpresaAndAccountNumberEndsWith(
+                        codigoProveedor,
+                        empresaPadre,
+                        ultimos8);
+
+        if (suppliers.isEmpty()) {
+            throw new BusinessExceptionCode(
+                    ErrorCodes.ERR030,
+                    "La cuenta beneficiaria del proveedor, no existe en Integrity.");
         }
 
         if (suppliers.size() > 1) {
-
-            agregarError(
-                errores,
-                error(
-                        ErrorCodes.ERR031,
-                        "Existe más de un supplier para Empresa y Cuenta Beneficiario usando últimos 8 caracteres",
-                        pago.getEmpresa(),
-                        pago.getCuentaBeneficiario(),
-                        ultimos8));
-
-            return null;
+            throw new BusinessExceptionCode(
+                    ErrorCodes.ERR031,
+                    "Existe más de un supplier para Empresa y Cuenta Beneficiario usando últimos 8 caracteres");
         }
 
         return suppliers.get(0);
-    }
+    }    
+    @Override
+    public String obtenerUltimos8DigitosCuenta(String cuentaBeneficiario) {
 
-    
+        if (cuentaBeneficiario == null
+                || cuentaBeneficiario.isBlank()) {
+
+            throw new BusinessException(
+                    "Cuenta beneficiario viene vacía");
+        }
+
+        String cuenta = cuentaBeneficiario.trim();
+
+        if (cuenta.length() >= 8) {
+            return cuenta.substring(cuenta.length() - 8);
+        }
+
+        return cuenta;
+    }
     private void procesarArchivo(File archivo) {
 
         List<PagosArchivo> batch = new ArrayList<>();
