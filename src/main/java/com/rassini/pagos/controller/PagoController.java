@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
 
@@ -161,7 +162,7 @@ public class PagoController {
     }
 
     @PostMapping("/validar")
-    public int validarPagos(@RequestParam String bu) {
+    public ValidacionEnvioDTO validarPagos(@RequestParam String bu) {
         return service.validarPagosPendientes(bu);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     }
 
