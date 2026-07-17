@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ValidacionEnvioDTO;
 
 public interface PagoService {
 
@@ -24,7 +25,7 @@ public interface PagoService {
 
     Page<PagoPendienteDTO> filtrarErroresPaginado(String bu, String search, Pageable pageable);
 
-    int validarPagosPendientes(String bu);
+    ValidacionEnvioDTO  validarPagosPendientes(String bu);
 
     int enviarPagosPendientes(String bu);
 
