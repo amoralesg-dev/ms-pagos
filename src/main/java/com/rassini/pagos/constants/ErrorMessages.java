@@ -57,7 +57,8 @@ public final class ErrorMessages {
         Map.entry(ErrorCodes.ERR043, "País intermediario es obligatorio cuando existe cuenta intermediaria"),
 
         Map.entry(ErrorCodes.ERR044, "Registro duplicado en archivo o base de datos"),
-        Map.entry(ErrorCodes.ERR045, "No existe supplier para el código proveedor")
+        Map.entry(ErrorCodes.ERR045, "No existe supplier para el código proveedor"),
+        Map.entry(ErrorCodes.ERR046, "No existe supplier para el código proveedor en mapeo de bussines unit")
 
     );
 }

@@ -123,7 +123,6 @@ public class Supplier {
     @Column(name = "intermediary_routing_code_swift")
     private String intermediaryRoutingCodeSwift;
 
-    
     @Column(name = "contact_name")
     private String contactName;
 
