@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.entity.CatalogoTipoPago;
 import com.rassini.pagos.entity.PagosArchivo;
 import com.rassini.pagos.entity.Supplier;
@@ -229,217 +231,219 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
-    public int validarPagosPendientes(String bu) {
+    public ValidacionEnvioDTO validarPagosPendientes(String bu) {
 
         List<PagosArchivo> pendientes;
 
         if (BuUtils.isAll(bu)) {
 
-            pendientes = pagosRepo.findPendientesParaValidarAll();
+            pendientes = pagosRepo.findPendientesValidacionAll();
 
         } else {
 
-            pendientes = pagosRepo.findPendientesParaValidarMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
-
-        }
-
-        if (pendientes == null || pendientes.isEmpty()) {
-            return 0;
-        }
-
-        String primerNombreArchivo =
-                pendientes.get(0).getNombreArchivo();
-
-        for (PagosArchivo pago : pendientes) {
-
-            String nombreArchivo =
-                    pago.getNombreArchivo();
-
-            if (primerNombreArchivo == null) {
-
-                if (nombreArchivo != null) {
-                    return 0;
-                }
-
-            } else if (!primerNombreArchivo.equals(nombreArchivo)) {
-
-                return 0;
-
-            }
-
-            if (pago.getNombreArchivoEnvio() == null) {
-                return 1;
-            }
-
-            String nombreArchivoEnvio =
-                    pago.getNombreArchivoEnvio();
-
-            if (nombreArchivoEnvio != null &&
-                !nombreArchivoEnvio.trim().isEmpty()) {
-
-                return 0;
-
-            }
-
-            if (pago.getTipoPago() == null ||
-                pago.getTipoPago().getDealType() == null ||
-                pago.getTipoPago().getDealType().trim().isEmpty()) {
-
-                return 0;
-
-            }
-
-        }
-
-        return 1;
-    }
-
-    @Override
-    public int enviarPagosPendientes(String bu) {
-
-        List<PagosArchivo> pendientes;
-
-        if (BuUtils.isAll(bu)) {
-
-            pendientes = pagosRepo.findPendientesPorEnviarAll();
-
-        } else {
-
-            pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
+            pendientes = pagosRepo.findPendientesValidacionMultiBu(
                     EmpresaUtils.obtenerEmpresasBusqueda(bu));
         }
 
         if (pendientes == null || pendientes.isEmpty()) {
-            return 0;
-        }
 
-        Map<String, Map<String, List<PagosArchivo>>> grouped =
+            return new ValidacionEnvioDTO(
+                    true,
+                    Collections.emptyList());
+        }
+       
+
+        Map<String, List<PagosArchivo>> pagosPorArchivo =
                 pendientes.stream()
                         .collect(Collectors.groupingBy(
                                 p -> p.getNombreArchivo() == null
                                         ? "SinArchivo"
-                                        : p.getNombreArchivo(),
-                                Collectors.groupingBy(
-                                        p -> (p.getTipoPago() != null
-                                                && p.getTipoPago().getDealType() != null)
-                                                        ? p.getTipoPago().getDealType()
-                                                        : "SinTipo")));
+                                        : p.getNombreArchivo()));
 
-        int filesGenerated = 0;
+        List<String> errores = new ArrayList<>();
 
-        for (Map.Entry<String, Map<String, List<PagosArchivo>>> entryArchivo
-                : grouped.entrySet()) {
+        for (Map.Entry<String, List<PagosArchivo>> entry
+                : pagosPorArchivo.entrySet()) {
 
-            String nombreArchivo = entryArchivo.getKey();
+            String nombreArchivo = entry.getKey();
 
-            for (Map.Entry<String, List<PagosArchivo>> entryTipo
-                    : entryArchivo.getValue().entrySet()) {
+            long sinClasificar =
+                    entry.getValue()
+                            .stream()
+                            .filter(p -> p.getTipoPago() == null)
+                            .count();
 
-                String tipoPago = entryTipo.getKey();
-                List<PagosArchivo> pagos = entryTipo.getValue();
+            if (sinClasificar > 0) {
 
-                String cleanTipoPago = tipoPago.replaceAll("\\s+", "");
-
-                String baseNombreArchivo = nombreArchivo;
-
-                if (baseNombreArchivo != null
-                        && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
-
-                    baseNombreArchivo =
-                            baseNombreArchivo.substring(
-                                    0,
-                                    baseNombreArchivo.length() - 4);
-                }
-
-                String nombreArchivoOutput =
-                        cleanTipoPago + baseNombreArchivo;
-
-                if (nombreArchivoOutput.length() > 31) {
-                    nombreArchivoOutput =
-                            nombreArchivoOutput.substring(0, 31);
-                }
-
-                String outputFileName =
-                        String.format("%s.txt", nombreArchivoOutput);
-
-                Map<String, List<PagosArchivo>> pagosPorEmpresa =
-                        pagos.stream()
-                                .collect(Collectors.groupingBy(
-                                        p -> EmpresaUtils.obtenerEmpresaPadre(
-                                                p.getEmpresa())));
-
-                for (Map.Entry<String, List<PagosArchivo>> entryEmpresa
-                        : pagosPorEmpresa.entrySet()) {
-
-                    String empresaPadre = entryEmpresa.getKey();
-
-                    List<PagosArchivo> pagosEmpresa =
-                            entryEmpresa.getValue();
-
-                    List<String> lineas = new ArrayList<>();
-
-                    for (PagosArchivo pago : pagosEmpresa) 
-                    {
-
-                            Supplier supplier = null;
-
-                            if (pago.getCodigoProveedor() != null) {
-
-                                String ultimos8 =
-                                        this.fileLoaderService.obtenerUltimos8DigitosCuenta(
-                                                pago.getCuentaBeneficiario());
-
-                                supplier =
-                                        this.fileLoaderService.obtenerSupplierPadrePorCuenta(
-                                                pago.getCodigoProveedor(),
-                                                pago.getEmpresa(),
-                                                ultimos8);
-                            }
-
-
-
-                            lineas.add(generarLineaLayout( pago,supplier,outputFileName));
-                            pago.setNombreArchivoEnvio(outputFileName);
-                            pago.setEstatus("ENVIADO");
-                    }
-
-                    try {
-
-                        Path outputDir = Paths.get(
-                                outputPathBase,
-                                empresaPadre);
-
-                        if (!Files.exists(outputDir)) {
-                            Files.createDirectories(outputDir);
-                        }
-
-                        Path outputPath =
-                                outputDir.resolve(outputFileName);
-
-                        Files.write(outputPath, lineas);
-
-                        log.info(
-                                "Archivo generado en ruta: {}",
-                                outputPath.toAbsolutePath());
-
-                        filesGenerated++;
-
-                    } catch (IOException e) {
-
-                        throw new BusinessException(
-                                "Error al generar archivo txt: "
-                                        + outputFileName);
-                    }
-                }
+                errores.add(
+                        String.format(
+                                "El archivo %s tiene %d pago(s) sin clasificar",
+                                nombreArchivo,
+                                sinClasificar));
             }
         }
 
-        pagosRepo.saveAll(pendientes);
+        return new ValidacionEnvioDTO(
+                errores.isEmpty(),
+                errores);
+    }
+    
+    @Override
+    public int enviarPagosPendientes(String bu) {
 
-        return filesGenerated;
+    List<PagosArchivo> pendientes;
+
+    if (BuUtils.isAll(bu)) {
+
+        pendientes = pagosRepo.findPendientesPorEnviarAll();
+
+    } else {
+
+        pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
+                EmpresaUtils.obtenerEmpresasBusqueda(bu));
     }
 
+    if (pendientes == null || pendientes.isEmpty()) {
+        return 0;
+    }
+
+    ValidacionEnvioDTO validacion =
+            validarPagosPendientes(bu);
+
+    if (!validacion.isPermitido()) {
+
+        throw new BusinessException(
+                String.join("\n", validacion.getErrores()));
+    }
+
+    Map<String, Map<String, List<PagosArchivo>>> grouped =
+            pendientes.stream()
+                    .collect(Collectors.groupingBy(
+                            p -> p.getNombreArchivo() == null
+                                    ? "SinArchivo"
+                                    : p.getNombreArchivo(),
+                            Collectors.groupingBy(
+                                    p -> (p.getTipoPago() != null
+                                            && p.getTipoPago().getDealType() != null)
+                                                    ? p.getTipoPago().getDealType()
+                                                    : "SinTipo")));
+
+    int filesGenerated = 0;
+
+    for (Map.Entry<String, Map<String, List<PagosArchivo>>> entryArchivo
+            : grouped.entrySet()) {
+
+        String nombreArchivo = entryArchivo.getKey();
+
+        for (Map.Entry<String, List<PagosArchivo>> entryTipo
+                : entryArchivo.getValue().entrySet()) {
+
+            String tipoPago = entryTipo.getKey();
+            List<PagosArchivo> pagos = entryTipo.getValue();
+
+            String cleanTipoPago =
+                    tipoPago.replaceAll("\\s+", "");
+
+            String baseNombreArchivo = nombreArchivo;
+
+            if (baseNombreArchivo != null
+                    && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
+
+                baseNombreArchivo =
+                        baseNombreArchivo.substring(
+                                0,
+                                baseNombreArchivo.length() - 4);
+            }
+
+            String nombreArchivoOutput =
+                    cleanTipoPago + baseNombreArchivo;
+
+            if (nombreArchivoOutput.length() > 31) {
+                nombreArchivoOutput =
+                        nombreArchivoOutput.substring(0, 31);
+            }
+
+            String outputFileName =
+                    String.format("%s.txt", nombreArchivoOutput);
+
+            Map<String, List<PagosArchivo>> pagosPorEmpresa =
+                    pagos.stream()
+                            .collect(Collectors.groupingBy(
+                                    p -> EmpresaUtils.obtenerEmpresaPadre(
+                                            p.getEmpresa())));
+
+            for (Map.Entry<String, List<PagosArchivo>> entryEmpresa
+                    : pagosPorEmpresa.entrySet()) {
+
+                String empresaPadre = entryEmpresa.getKey();
+
+                List<PagosArchivo> pagosEmpresa =
+                        entryEmpresa.getValue();
+
+                List<String> lineas = new ArrayList<>();
+
+                for (PagosArchivo pago : pagosEmpresa) {
+
+                    Supplier supplier = null;
+
+                    if (pago.getCodigoProveedor() != null) {
+
+                        String ultimos8 =
+                                fileLoaderService.obtenerUltimos8DigitosCuenta(
+                                        pago.getCuentaBeneficiario());
+
+                        supplier =
+                                fileLoaderService.obtenerSupplierPadrePorCuenta(
+                                        pago.getCodigoProveedor(),
+                                        pago.getEmpresa(),
+                                        ultimos8);
+                    }
+
+                    lineas.add(
+                            generarLineaLayout(
+                                    pago,
+                                    supplier,
+                                    outputFileName));
+
+                    pago.setNombreArchivoEnvio(outputFileName);
+                    pago.setEstatus("ENVIADO");
+                }
+
+                try {
+
+                    Path outputDir = Paths.get(
+                            outputPathBase,
+                            empresaPadre);
+
+                    if (!Files.exists(outputDir)) {
+                        Files.createDirectories(outputDir);
+                    }
+
+                    Path outputPath =
+                            outputDir.resolve(outputFileName);
+
+                    Files.write(outputPath, lineas);
+
+                    log.info(
+                            "Archivo generado en ruta: {}",
+                            outputPath.toAbsolutePath());
+
+                    filesGenerated++;
+
+                } catch (IOException e) {
+
+                    throw new BusinessException(
+                            "Error al generar archivo txt: "
+                                    + outputFileName);
+                }
+            }
+        }
+    }
+
+    pagosRepo.saveAll(pendientes);
+
+    return filesGenerated;
+}
     private String generarLineaLayout(PagosArchivo pago,
             Supplier supplier,
             String outputFileName) {

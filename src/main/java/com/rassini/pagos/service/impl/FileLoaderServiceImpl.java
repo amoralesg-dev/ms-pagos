@@ -46,8 +46,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     public void cargarArchivos() {
 
         File folder = new File(rutaCarpeta);
-                    log.info(folder);
-
+        log.info("Procesando carpeta: {}", folder.getAbsolutePath());
 
         if (!folder.exists() || !folder.isDirectory()) {
             throw new RuntimeException("Ruta inválida configurada: " + rutaCarpeta);
@@ -61,10 +60,22 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
 
         for (File archivo : archivos) {
-            procesarArchivo(archivo);
+            try {
+
+                procesarArchivo(archivo);
+
+                if (archivo.delete()) {
+                    log.info("Archivo eliminado: {}", archivo.getName());
+                } else {
+                    log.warn("No se pudo eliminar el archivo: {}", archivo.getAbsolutePath());
+                }
+
+            } catch (Exception e) {
+                log.error("Error procesando archivo {}. No será eliminado.",
+                        archivo.getName(), e);
+            }
         }
     }
-
     private boolean isBlank(String valor) {
         return valor == null || valor.trim().isEmpty();
     }
