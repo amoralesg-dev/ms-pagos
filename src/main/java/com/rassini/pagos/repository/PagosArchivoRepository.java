@@ -270,6 +270,24 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         ORDER BY p.nombreArchivo, p.tipoPago.dealType
         """)
         List<PagosArchivo> findPendientesPorEnviarAll();
+
+        @Query("""
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'PENDIENTE'
+        ORDER BY p.nombreArchivo
+        """)
+        List<PagosArchivo> findPendientesValidacionAll();
+
+        @Query("""
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'PENDIENTE'
+        AND p.empresa IN :empresas
+        ORDER BY p.nombreArchivo
+        """)
+        List<PagosArchivo> findPendientesValidacionMultiBu(
+                @Param("empresas") List<String> empresas);
         
 
         List<PagosArchivo> findByNombreArchivo(String nombreArchivo);
