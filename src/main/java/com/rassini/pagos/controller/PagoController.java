@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rassini.pagos.dto.ActualizarReferenciasManualDTO;
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualDTO;
@@ -200,5 +201,17 @@ public class PagoController {
 
         return "Referencia manual actualizada correctamente";
     }
+
+    @PutMapping("/referencias-manuales")
+    public String actualizarReferenciasManuales(
+            @RequestBody ActualizarReferenciasManualDTO request) {
+
+        service.actualizarReferenciasManuales(
+                request.getItems()
+        );
+
+        return "Referencias manuales actualizadas correctamente";
+    }
+    
 }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              

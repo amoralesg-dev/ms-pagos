@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ReferenciaManualItemDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.entity.CatalogoTipoPago;
 import com.rassini.pagos.entity.PagosArchivo;
@@ -569,6 +570,29 @@ public class PagoServiceImpl implements PagoService {
             pago.setReferenciaManual(referenciaManual);
 
             pagosRepo.save(pago);
+    }
+
+
+    @Override
+    @Transactional
+    public void actualizarReferenciasManuales(
+                    List<ReferenciaManualItemDTO> items) {
+
+            List<Long> ids = items.stream()
+                            .map(ReferenciaManualItemDTO::getId)
+                            .toList();
+
+            List<PagosArchivo> pagos = pagosRepo.findAllById(ids);
+
+            Map<Long, String> referenciasPorId = items.stream()
+                            .collect(Collectors.toMap(
+                                            ReferenciaManualItemDTO::getId,
+                                            ReferenciaManualItemDTO::getReferenciaManual));
+
+            pagos.forEach(pago -> pago.setReferenciaManual(
+                            referenciasPorId.get(pago.getId())));
+
+            pagosRepo.saveAll(pagos);
     }
 
 }
