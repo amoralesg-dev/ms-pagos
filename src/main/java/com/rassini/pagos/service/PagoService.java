@@ -32,4 +32,8 @@ public interface PagoService {
     void rechazarPago(Long id);
 
     void rechazarPagos(List<Long> ids);
+
+    
+    void actualizarReferenciaManual(Long id,String referenciaManual);
+
 }

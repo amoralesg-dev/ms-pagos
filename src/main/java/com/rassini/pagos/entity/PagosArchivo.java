@@ -102,9 +102,13 @@ public class PagosArchivo {
     @Column(name = "estatus")
     private String estatus;
     
+    @Column(name = "referencia_manual")
+    private String referenciaManual;
 
     //  FK por deal_type (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deal_type", referencedColumnName = "deal_type")
     private CatalogoTipoPago tipoPago;
+
+
 }

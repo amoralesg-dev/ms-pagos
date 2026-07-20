@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ReferenciaManualDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
@@ -185,6 +186,19 @@ public class PagoController {
         service.rechazarPagos(ids);
 
         return "Pagos rechazados correctamente";
+    }
+
+    @PutMapping("/{id}/referencia-manual")
+    public String actualizarReferenciaManual(
+            @PathVariable Long id,
+            @RequestBody ReferenciaManualDTO request) {
+
+        service.actualizarReferenciaManual(
+                id,
+                request.getReferenciaManual()
+        );
+
+        return "Referencia manual actualizada correctamente";
     }
 }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              

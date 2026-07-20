@@ -459,6 +459,8 @@ public class PagoServiceImpl implements PagoService {
         }else{
             campos[4] = nvl(pago.getInformacionAdicional());
         }
+
+
         
         campos[5] = nvl(pago.getFechaEnvio());
         campos[6] = nvl(pago.getFechaValor());
@@ -554,6 +556,19 @@ public class PagoServiceImpl implements PagoService {
 
         pagosRepo.saveAll(pagos);
 
+    }
+
+    @Override
+    @Transactional
+    public void actualizarReferenciaManual(Long id, String referenciaManual) {
+
+            PagosArchivo pago = pagosRepo.findById(id)
+                            .orElseThrow(() -> new BusinessException(
+                                            "No se encontró el pago con id: " + id));
+
+            pago.setReferenciaManual(referenciaManual);
+
+            pagosRepo.save(pago);
     }
 
 }
