@@ -24,4 +24,5 @@ public class PagoPendienteDTO {
     private String tipoPago;
     private String estatus;
     private String mensaje;
+    private String referenciaManual;
 }

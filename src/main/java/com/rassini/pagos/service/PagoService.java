@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
+import com.rassini.pagos.dto.ReferenciaManualItemDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 
 public interface PagoService {
@@ -32,4 +33,10 @@ public interface PagoService {
     void rechazarPago(Long id);
 
     void rechazarPagos(List<Long> ids);
+
+    
+    void actualizarReferenciaManual(Long id,String referenciaManual);
+
+    void actualizarReferenciasManuales(List<ReferenciaManualItemDTO> items);
+
 }
