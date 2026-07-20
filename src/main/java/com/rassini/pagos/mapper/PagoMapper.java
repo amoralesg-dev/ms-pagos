@@ -31,6 +31,8 @@ public class PagoMapper {
         if (entity.getTipoPago() != null) {
            dto.setTipoPago(entity.getTipoPago().getDealType());  
         }
+        dto.setReferenciaManual(entity.getReferenciaManual());
+
        
 
         return dto;
