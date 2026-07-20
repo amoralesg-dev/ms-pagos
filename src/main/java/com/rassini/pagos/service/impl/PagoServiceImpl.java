@@ -292,242 +292,232 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public int enviarPagosPendientes(String bu) {
 
-    List<PagosArchivo> pendientes;
+            List<PagosArchivo> pendientes;
 
-    if (BuUtils.isAll(bu)) {
+            if (BuUtils.isAll(bu)) {
 
-        pendientes = pagosRepo.findPendientesPorEnviarAll();
+                    pendientes = pagosRepo.findPendientesPorEnviarAll();
 
-    } else {
+            } else {
 
-        pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
-                EmpresaUtils.obtenerEmpresasBusqueda(bu));
-    }
-
-    if (pendientes == null || pendientes.isEmpty()) {
-        return 0;
-    }
-
-    ValidacionEnvioDTO validacion =
-            validarPagosPendientes(bu);
-
-    if (!validacion.isPermitido()) {
-
-        throw new BusinessException(
-                String.join("\n", validacion.getErrores()));
-    }
-
-    Map<String, Map<String, List<PagosArchivo>>> grouped =
-            pendientes.stream()
-                    .collect(Collectors.groupingBy(
-                            p -> p.getNombreArchivo() == null
-                                    ? "SinArchivo"
-                                    : p.getNombreArchivo(),
-                            Collectors.groupingBy(
-                                    p -> (p.getTipoPago() != null
-                                            && p.getTipoPago().getDealType() != null)
-                                                    ? p.getTipoPago().getDealType()
-                                                    : "SinTipo")));
-
-    int filesGenerated = 0;
-
-    for (Map.Entry<String, Map<String, List<PagosArchivo>>> entryArchivo
-            : grouped.entrySet()) {
-
-        String nombreArchivo = entryArchivo.getKey();
-
-        for (Map.Entry<String, List<PagosArchivo>> entryTipo
-                : entryArchivo.getValue().entrySet()) {
-
-            String tipoPago = entryTipo.getKey();
-            List<PagosArchivo> pagos = entryTipo.getValue();
-
-            String cleanTipoPago =
-                    tipoPago.replaceAll("\\s+", "");
-
-            String baseNombreArchivo = nombreArchivo;
-
-            if (baseNombreArchivo != null
-                    && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
-
-                baseNombreArchivo =
-                        baseNombreArchivo.substring(
-                                0,
-                                baseNombreArchivo.length() - 4);
+                    pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
+                                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
             }
 
-            String nombreArchivoOutput =
-                    cleanTipoPago + baseNombreArchivo;
-
-            if (nombreArchivoOutput.length() > 31) {
-                nombreArchivoOutput =
-                        nombreArchivoOutput.substring(0, 31);
+            if (pendientes == null || pendientes.isEmpty()) {
+                    return 0;
             }
 
-            String outputFileName =
-                    String.format("%s.txt", nombreArchivoOutput);
+            ValidacionEnvioDTO validacion = validarPagosPendientes(bu);
 
-            Map<String, List<PagosArchivo>> pagosPorEmpresa =
-                    pagos.stream()
-                            .collect(Collectors.groupingBy(
-                                    p -> EmpresaUtils.obtenerEmpresaPadre(
-                                            p.getEmpresa())));
-
-            for (Map.Entry<String, List<PagosArchivo>> entryEmpresa
-                    : pagosPorEmpresa.entrySet()) {
-
-                String empresaPadre = entryEmpresa.getKey();
-
-                List<PagosArchivo> pagosEmpresa =
-                        entryEmpresa.getValue();
-
-                List<String> lineas = new ArrayList<>();
-
-                for (PagosArchivo pago : pagosEmpresa) {
-
-                    Supplier supplier = null;
-
-                    if (pago.getCodigoProveedor() != null) {
-
-                        String ultimos8 =
-                                fileLoaderService.obtenerUltimos8DigitosCuenta(
-                                        pago.getCuentaBeneficiario());
-
-                        supplier =
-                                fileLoaderService.obtenerSupplierPadrePorCuenta(
-                                        pago.getCodigoProveedor(),
-                                        pago.getEmpresa(),
-                                        ultimos8);
-                    }
-
-                    lineas.add(
-                            generarLineaLayout(
-                                    pago,
-                                    supplier,
-                                    outputFileName));
-
-                    pago.setNombreArchivoEnvio(outputFileName);
-                    pago.setEstatus("ENVIADO");
-                }
-
-                try {
-
-                    Path outputDir = Paths.get(
-                            outputPathBase,
-                            empresaPadre);
-
-                    if (!Files.exists(outputDir)) {
-                        Files.createDirectories(outputDir);
-                    }
-
-                    Path outputPath =
-                            outputDir.resolve(outputFileName);
-
-                    Files.write(outputPath, lineas);
-
-                    log.info(
-                            "Archivo generado en ruta: {}",
-                            outputPath.toAbsolutePath());
-
-                    filesGenerated++;
-
-                } catch (IOException e) {
+            if (!validacion.isPermitido()) {
 
                     throw new BusinessException(
-                            "Error al generar archivo txt: "
-                                    + outputFileName);
-                }
+                                    String.join("\n", validacion.getErrores()));
             }
-        }
+
+            Map<String, Map<String, List<PagosArchivo>>> grouped = pendientes.stream()
+                            .collect(Collectors.groupingBy(
+                                            p -> p.getNombreArchivo() == null
+                                                            ? "SinArchivo"
+                                                            : p.getNombreArchivo(),
+                                            Collectors.groupingBy(
+                                                            p -> (p.getTipoPago() != null
+                                                                            && p.getTipoPago().getDealType() != null)
+                                                                                            ? p.getTipoPago()
+                                                                                                            .getDealType()
+                                                                                            : "SinTipo")));
+
+            int filesGenerated = 0;
+
+            for (Map.Entry<String, Map<String, List<PagosArchivo>>> entryArchivo : grouped.entrySet()) {
+
+                    String nombreArchivo = entryArchivo.getKey();
+
+                    for (Map.Entry<String, List<PagosArchivo>> entryTipo : entryArchivo.getValue().entrySet()) {
+
+                            String tipoPago = entryTipo.getKey();
+                            List<PagosArchivo> pagos = entryTipo.getValue();
+
+                            String cleanTipoPago = tipoPago.replaceAll("\\s+", "");
+
+                            String baseNombreArchivo = nombreArchivo;
+
+                            if (baseNombreArchivo != null
+                                            && baseNombreArchivo.toLowerCase().endsWith(".txt")) {
+
+                                    baseNombreArchivo = baseNombreArchivo.substring(
+                                                    0,
+                                                    baseNombreArchivo.length() - 4);
+                            }
+
+                            String nombreArchivoOutput = cleanTipoPago + baseNombreArchivo;
+
+                            if (nombreArchivoOutput.length() > 31) {
+                                    nombreArchivoOutput = nombreArchivoOutput.substring(0, 31);
+                            }
+
+                            String outputFileName = String.format("%s.txt", nombreArchivoOutput);
+
+                            Map<String, List<PagosArchivo>> pagosPorEmpresa = pagos.stream()
+                                            .collect(Collectors.groupingBy(
+                                                            p -> EmpresaUtils.obtenerEmpresaPadre(
+                                                                            p.getEmpresa())));
+
+                            for (Map.Entry<String, List<PagosArchivo>> entryEmpresa : pagosPorEmpresa.entrySet()) {
+
+                                    String empresaPadre = entryEmpresa.getKey();
+
+                                    List<PagosArchivo> pagosEmpresa = entryEmpresa.getValue();
+
+                                    List<String> lineas = new ArrayList<>();
+
+                                    for (PagosArchivo pago : pagosEmpresa) {
+
+                                            Supplier supplier = null;
+
+                                            if (pago.getCodigoProveedor() != null) {
+
+                                                    String ultimos8 = fileLoaderService.obtenerUltimos8DigitosCuenta(
+                                                                    pago.getCuentaBeneficiario());
+
+                                                    supplier = fileLoaderService.obtenerSupplierPadrePorCuenta(
+                                                                    pago.getCodigoProveedor(),
+                                                                    pago.getEmpresa(),
+                                                                    ultimos8);
+                                            }
+
+                                            lineas.add(
+                                                            generarLineaLayout(
+                                                                            pago,
+                                                                            supplier,
+                                                                            outputFileName));
+
+                                            pago.setNombreArchivoEnvio(outputFileName);
+                                            pago.setEstatus("ENVIADO");
+                                    }
+
+                                    try {
+
+                                            Path outputDir = Paths.get(
+                                                            outputPathBase,
+                                                            empresaPadre);
+
+                                            if (!Files.exists(outputDir)) {
+                                                    Files.createDirectories(outputDir);
+                                            }
+
+                                            Path outputPath = outputDir.resolve(outputFileName);
+
+                                            Files.write(outputPath, lineas);
+
+                                            log.info(
+                                                            "Archivo generado en ruta: {}",
+                                                            outputPath.toAbsolutePath());
+
+                                            filesGenerated++;
+
+                                    } catch (IOException e) {
+
+                                            throw new BusinessException(
+                                                            "Error al generar archivo txt: "
+                                                                            + outputFileName);
+                                    }
+                            }
+                    }
+            }
+
+            pagosRepo.saveAll(pendientes);
+
+            return filesGenerated;
     }
 
-    pagosRepo.saveAll(pendientes);
-
-    return filesGenerated;
-}
     private String generarLineaLayout(PagosArchivo pago,
-            Supplier supplier,
-            String outputFileName) {
+                    Supplier supplier,
+                    String outputFileName) {
 
-        String[] campos = new String[28];
+            String[] campos = new String[28];
 
-        campos[0] = nvl(pago.getEmpresa());//
-        campos[1] = nvl(pago.getCuentaOrdenante());
-        campos[2] = nvl(pago.getMonedaOrdenante());
-        campos[3] = nvl(pago.getReferencia());
-        if(ConstantsSuppliers.PN.equals(pago.getEmpresa())){
-            campos[4] = nvl(pago.getReferencia());
-        }else{
-            campos[4] = nvl(pago.getInformacionAdicional());
-        }
+            campos[0] = nvl(pago.getEmpresa());//
+            campos[1] = nvl(pago.getCuentaOrdenante());
+            campos[2] = nvl(pago.getMonedaOrdenante());
+            campos[3] = nvl(pago.getReferencia());
+            if (ConstantsSuppliers.PN.equals(pago.getEmpresa())) {
+                    campos[4] = nvl(pago.getReferencia());
+            } else {
+                    campos[4] = nvl(pago.getInformacionAdicional());
+            }
 
+            if(pago.getReferenciaManual()!=null && !pago.getReferenciaManual().isBlank()){
+                campos[4]=nvl(pago.getReferenciaManual());
+            }
 
-        
-        campos[5] = nvl(pago.getFechaEnvio());
-        campos[6] = nvl(pago.getFechaValor());
-        campos[7] = nvl(pago.getMonto());
-        campos[8] = nvl(pago.getMoneda());
-        campos[9] = nvl(pago.getTipoCambio());
-        campos[10] = nvl(pago.getCodigoProveedor());
-        campos[11] = nvl(pago.getNombreBeneficiario());
-        campos[12] = nvl(pago.getRfcBeneficiario());
+            campos[5] = nvl(pago.getFechaEnvio());
+            campos[6] = nvl(pago.getFechaValor());
+            campos[7] = nvl(pago.getMonto());
+            campos[8] = nvl(pago.getMoneda());
+            campos[9] = nvl(pago.getTipoCambio());
+            campos[10] = nvl(pago.getCodigoProveedor());
+            campos[11] = nvl(pago.getNombreBeneficiario());
+            campos[12] = nvl(pago.getRfcBeneficiario());
 
-        if (supplier == null ||
-                supplier.getStreetName() == null || supplier.getStreetName().trim().isEmpty() ||
-                supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
-                supplier.getZipCode() == null || supplier.getZipCode().trim().isEmpty() ||
-                supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
-                supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
-                supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
+            if (supplier == null ||
+                            supplier.getStreetName() == null || supplier.getStreetName().trim().isEmpty() ||
+                            supplier.getStreetNumber() == null || supplier.getStreetNumber().trim().isEmpty() ||
+                            supplier.getZipCode() == null || supplier.getZipCode().trim().isEmpty() ||
+                            supplier.getCityCode() == null || supplier.getCityCode().trim().isEmpty() ||
+                            supplier.getStateCode() == null || supplier.getStateCode().trim().isEmpty() ||
+                            supplier.getCountryCode() == null || supplier.getCountryCode().trim().isEmpty()) {
 
-            throw new BusinessException(
-                    "El proveedor " + pago.getCodigoProveedor() +
-                            " no cuenta con la información completa para generar el layout");
-        }
+                    throw new BusinessException(
+                                    "El proveedor " + pago.getCodigoProveedor() +
+                                                    " no cuenta con la información completa para generar el layout");
+            }
 
-        campos[13] = nvl(supplier.getStreetName());
-        campos[14] = nvl(supplier.getStreetNumber());
-        campos[15] = nvl(supplier.getZipCode());
-        campos[16] = nvl(supplier.getCityCode());
-        campos[17] = nvl(supplier.getStateCode());
-        campos[18] = nvl(supplier.getCountryCode());
+            campos[13] = nvl(supplier.getStreetName());
+            campos[14] = nvl(supplier.getStreetNumber());
+            campos[15] = nvl(supplier.getZipCode());
+            campos[16] = nvl(supplier.getCityCode());
+            campos[17] = nvl(supplier.getStateCode());
+            campos[18] = nvl(supplier.getCountryCode());
 
-        campos[19] = nvl(pago.getCuentaBeneficiario());
-        campos[20] = nvl(pago.getMonedaBeneficiario());
+            campos[19] = nvl(pago.getCuentaBeneficiario());
+            campos[20] = nvl(pago.getMonedaBeneficiario());
 
-        //al parecer ya no se usara
-        boolean isBeneficiaryBankValid = Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber()) &&
-                Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
-                Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
+            // al parecer ya no se usara
+            boolean isBeneficiaryBankValid = Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber())
+                            &&
+                            Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
+                            Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
 
-        campos[21] = isBeneficiaryBankValid
-                ? nvl(supplier.getBeneficiaryBankName())
-                : "";
+            campos[21] = isBeneficiaryBankValid
+                            ? nvl(supplier.getBeneficiaryBankName())
+                            : "";
 
-        String ruteo = supplier.getRoutingCodeSwift();
+            String ruteo = supplier.getRoutingCodeSwift();
 
-        if (ruteo == null || ruteo.isBlank()) {
-            ruteo = supplier.getRoutingCodeAba();
-        }
+            if (ruteo == null || ruteo.isBlank()) {
+                    ruteo = supplier.getRoutingCodeAba();
+            }
 
-        campos[22] = nvl(ruteo);
+            campos[22] = nvl(ruteo);
 
-        campos[23] = nvl(supplier.getBankCountry());
-        campos[24] = nvl(supplier.getIntermediaryAccount());
+            campos[23] = nvl(supplier.getBankCountry());
+            campos[24] = nvl(supplier.getIntermediaryAccount());
 
-        String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
+            String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
 
-        if (intRuteo == null || intRuteo.isBlank()) {
-            intRuteo = supplier.getIntermediaryRoutingCodeAba();
-        }
+            if (intRuteo == null || intRuteo.isBlank()) {
+                    intRuteo = supplier.getIntermediaryRoutingCodeAba();
+            }
 
-        campos[25] = nvl(intRuteo);
+            campos[25] = nvl(intRuteo);
 
-        campos[26] = nvl(supplier.getIntermediaryAccountCountry());
+            campos[26] = nvl(supplier.getIntermediaryAccountCountry());
 
-        campos[27] = nvl(outputFileName);
+            campos[27] = nvl(outputFileName);
 
-        return String.join("|", campos);
+            return String.join("|", campos);
     }
 
     private String nvl(String val) {
