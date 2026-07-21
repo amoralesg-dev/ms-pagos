@@ -4,20 +4,24 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.rassini.pagos.constants.ErrorCodes;
+import com.rassini.pagos.entity.CatalogoTipoPago;
+import com.rassini.pagos.entity.EquivalencesDealType;
 import com.rassini.pagos.entity.PagosArchivo;
 import com.rassini.pagos.entity.Supplier;
 import com.rassini.pagos.exception.BusinessException;
 import com.rassini.pagos.exception.BusinessExceptionCode;
+import com.rassini.pagos.repository.CatalogoTipoPagoRepository;
+import com.rassini.pagos.repository.EquivalencesDealTypeRepository;
 import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.FileLoaderService;
@@ -32,18 +36,23 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
     private final PagosArchivoRepository repository;
     private final SupplierRepository supplierRepository;
+    private final EquivalencesDealTypeRepository equivalencesDealTypeRepository;
+    private final CatalogoTipoPagoRepository catalogoTipoPagoRepository;
 
     @Value("${loader.path}")
     private String rutaCarpeta;
 
-    
-    public FileLoaderServiceImpl(PagosArchivoRepository repository, SupplierRepository supplierRepository) {
+
+    public FileLoaderServiceImpl(PagosArchivoRepository repository, SupplierRepository supplierRepository, EquivalencesDealTypeRepository equivalencesDealTypeRepository, CatalogoTipoPagoRepository catalogoTipoPagoRepository) {
         this.repository = repository;
         this.supplierRepository = supplierRepository;
+        this.equivalencesDealTypeRepository = equivalencesDealTypeRepository;
+        this.catalogoTipoPagoRepository = catalogoTipoPagoRepository;
     }
 
     @Override
     public void cargarArchivos() {
+
 
         File folder = new File(rutaCarpeta);
         log.info("Procesando carpeta: {}", folder.getAbsolutePath());
@@ -468,7 +477,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         PagosArchivo pago,
         List<String> errores) {
 
-        
+
     List<Supplier> suppliersList = supplierRepository.findByErpIdQad(pago.getCodigoProveedor());
 
 
@@ -481,7 +490,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
         if (isBlank(pago.getEmpresa())) {
 
-            
+
             agregarError(
                 errores,
                 error(ErrorCodes.ERR027, "No es posible validar supplier porque Empresa viene vacía"));
@@ -513,7 +522,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
             return null;
         }
 
-        
+
         Supplier supplier;
 
         try {
@@ -588,7 +597,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
 
         return suppliers.get(0);
-    }    
+    }
     @Override
     public String obtenerUltimos8DigitosCuenta(String cuentaBeneficiario) {
 
@@ -608,6 +617,17 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         return cuenta;
     }
     private void procesarArchivo(File archivo) {
+
+      //obtener lista de EquivalencesDealType y cargarlas en un mapa paara poder compararlos
+      //llave del mapa bu-code y guarda objeto EquivalencesDealType
+        final Map<String, EquivalencesDealType> equivalencesDealTypeMap = equivalencesDealTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(equivalence -> equivalence.getBu() + "-" + equivalence.getCode(), equivalence -> equivalence));
+
+         //obtener lista de CatalogoTipoPago y cargarlas en un mapa
+        //llave del mapa bu-dealType y guarda objeto CatalogoTipoPago
+        final Map<String, CatalogoTipoPago> catalogoTipoPagoMap = catalogoTipoPagoRepository.findAll().stream()
+            .collect(Collectors.toMap(catalogo -> catalogo.getBu() + "-" + catalogo.getDealType(), catalogo -> catalogo));
+
 
         List<PagosArchivo> batch = new ArrayList<>();
         Set<String> registrosProcesados = new HashSet<>();
@@ -664,6 +684,21 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Registro duplicado en archivo o base de datos"));
 
                     } else {
+                      Supplier supplierPadre = obtenerSupplierPadre(pago.getCodigoProveedor(), pago.getEmpresa());
+                      String compara = supplierPadre.getBusinessUnitCode() +"-" + pago.getCodigoProveedor();
+                      // Get the equivalence from the map
+                      EquivalencesDealType equivalence = equivalencesDealTypeMap.get(compara);
+
+                        // If an equivalence is found, you can use it
+                        if (equivalence != null) {
+                            // For example, you might want to update the deal type in the pago object
+                            String cat =  equivalence.getBu()+"-"+equivalence.getEquivalences();
+                            CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(cat);
+                            pago.setTipoPago(catalogoTP);
+                            log.info("Found equivalence for key {}: {}", compara, equivalence.getEquivalences());
+                        } else {
+                            log.warn("No equivalence found for key: {}", compara);
+                        }
 
                         registrosProcesados.add(uniqueKey);
                     }
@@ -684,7 +719,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
                 } catch (Exception e) {
-                    log.error("Error procesando línea: " + line, e);
+                    log.error("Error procesando línea con equivalencesDealTypeMap: " + line, e);
                     log.info("Error en línea: " + line);
                 }
             }
@@ -700,5 +735,5 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         }
     }
 
-    
+
 }
