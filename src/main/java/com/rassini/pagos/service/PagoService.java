@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.rassini.pagos.dto.AnaliticaPendientesArchivoDTO;
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualItemDTO;
@@ -38,5 +39,7 @@ public interface PagoService {
     void actualizarReferenciaManual(Long id,String referenciaManual);
 
     void actualizarReferenciasManuales(List<ReferenciaManualItemDTO> items);
+
+    List<AnaliticaPendientesArchivoDTO> obtenerAnaliticaPendientes(String bu);
 
 }
