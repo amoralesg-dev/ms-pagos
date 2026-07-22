@@ -77,21 +77,21 @@ INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('0
 INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('0111', 'B004', 'INTANGIBLES', 'SUPPLIERF');
 INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('0111', 'B022', 'OTROS ARTICULOS', 'SUPPLIEV');
 
--- BU 02 (QAD Suspensiones, celda G70): code=Col G, des_code=Col F, equivalences=Col O (14 registros)
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'MAPI', 'MATERIA PRIMA', 'SUPPLIERM');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'COMP', 'COMPONENTES', 'SUPPLIEM');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'ACFI', 'ACTIVOS FIJOS', 'CAPEX');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'GVAR', 'GASTOS VARIABLES', 'SUPPLIEV');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'IMPT', 'IMPUESTOS', 'IMPUESTOS');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'GFIO', 'GASTOS FIJOS', 'SUPPLIERF');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'INTE', 'INTERCOMPANIA', 'INTERTRANS');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'NOMI', 'NOMINA', 'NOMINA');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'OTRO', 'OTRO TIPO DE GASTO', 'SUPPLIEV');
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'CBIB', 'COMISIONES E INTERESES', NULL);
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'CORI', 'COMISIONES RASSINI INTERNACIONAL', NULL);
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'CORP', 'PAGOS CORPORATIVO', NULL);
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'DEVO', 'DEVOLUCI\U00D3N A CORPO Y CHEQUE DE PROVEEDOR', NULL);
-INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('02', 'STAF', 'STAFF MARASA', NULL);
+-- BU 09 (QAD Suspensiones, celda G70): code=Col G, des_code=Col F, equivalences=Col O (14 registros)
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'MAPI', 'MATERIA PRIMA', 'SUPPLIERM');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'COMP', 'COMPONENTES', 'SUPPLIEM');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'ACFI', 'ACTIVOS FIJOS', 'CAPEX');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'GVAR', 'GASTOS VARIABLES', 'SUPPLIEV');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'IMPT', 'IMPUESTOS', 'IMPUESTOS');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'GFIO', 'GASTOS FIJOS', 'SUPPLIERF');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'INTE', 'INTERCOMPANIA', 'INTERTRANS');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'NOMI', 'NOMINA', 'NOMINA');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'OTRO', 'OTRO TIPO DE GASTO', 'SUPPLIEV');
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'CBIB', 'COMISIONES E INTERESES', NULL);
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'CORI', 'COMISIONES RASSINI INTERNACIONAL', NULL);
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'CORP', 'PAGOS CORPORATIVO', NULL);
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'DEVO', 'DEVOLUCI\U00D3N A CORPO Y CHEQUE DE PROVEEDOR', NULL);
+INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('09', 'STAF', 'STAFF MARASA', NULL);
 
 -- BU 1000 (QAD Frenos, celda I70): code=Col I, des_code=Col H, equivalences=Col O (25 registros)
 INSERT INTO equivalences_deal_type (bu, code, des_code, equivalences) VALUES ('1000', 'MP', 'MATERIA PRIMA', 'SUPPLIERM');
