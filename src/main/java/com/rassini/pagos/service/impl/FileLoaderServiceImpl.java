@@ -621,13 +621,20 @@ public class FileLoaderServiceImpl implements FileLoaderService {
       //obtener lista de EquivalencesDealType y cargarlas en un mapa paara poder compararlos
       //llave del mapa bu-code y guarda objeto EquivalencesDealType
         final Map<String, EquivalencesDealType> equivalencesDealTypeMap = equivalencesDealTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(equivalence -> equivalence.getBu() + "-" + equivalence.getCode(), equivalence -> equivalence));
+            .collect(Collectors.toMap(
+                equivalence -> equivalence.getBu() + "-" + equivalence.getCode(),
+                equivalence -> equivalence,
+                (existing, replacement) -> existing  // Mantiene el primero
+            ));
 
          //obtener lista de CatalogoTipoPago y cargarlas en un mapa
         //llave del mapa bu-dealType y guarda objeto CatalogoTipoPago
         final Map<String, CatalogoTipoPago> catalogoTipoPagoMap = catalogoTipoPagoRepository.findAll().stream()
-            .collect(Collectors.toMap(catalogo -> catalogo.getBu() + "-" + catalogo.getDealType(), catalogo -> catalogo));
-
+          .collect(Collectors.toMap(
+              catalogo -> catalogo.getDealType(),
+              catalogo -> catalogo,
+              (existing, replacement) -> existing  // Mantiene el primero
+          ));
 
         List<PagosArchivo> batch = new ArrayList<>();
         Set<String> registrosProcesados = new HashSet<>();
@@ -684,16 +691,18 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Registro duplicado en archivo o base de datos"));
 
                     } else {
+                      log.info("Search supplierPadre for key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
                       Supplier supplierPadre = obtenerSupplierPadre(pago.getCodigoProveedor(), pago.getEmpresa());
-                      String compara = supplierPadre.getBusinessUnitCode() +"-" + pago.getCodigoProveedor();
+                      log.info("Found PurchaseTypeCode: {}", supplierPadre.getPurchaseTypeCode());
+                      String compara = supplierPadre.getBusinessUnitCode() +"-" + supplierPadre.getPurchaseTypeCode();
                       // Get the equivalence from the map
                       EquivalencesDealType equivalence = equivalencesDealTypeMap.get(compara);
 
                         // If an equivalence is found, you can use it
                         if (equivalence != null) {
                             // For example, you might want to update the deal type in the pago object
-                            String cat =  equivalence.getBu()+"-"+equivalence.getEquivalences();
-                            CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(cat);
+                            log.info("Search tipo pago  for key Eq {} ", equivalence.getEquivalences());
+                            CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(equivalence.getEquivalences());
                             pago.setTipoPago(catalogoTP);
                             log.info("Found equivalence for key {}: {}", compara, equivalence.getEquivalences());
                         } else {
