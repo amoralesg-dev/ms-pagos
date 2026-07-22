@@ -691,26 +691,31 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Registro duplicado en archivo o base de datos"));
 
                     } else {
-                      log.info("Search supplierPadre for key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
-                      Supplier supplierPadre = obtenerSupplierPadre(pago.getCodigoProveedor(), pago.getEmpresa());
-                      log.info("Found PurchaseTypeCode: {}", supplierPadre.getPurchaseTypeCode());
-                      String compara = supplierPadre.getBusinessUnitCode() +"-" + supplierPadre.getPurchaseTypeCode();
-                      // Get the equivalence from the map
-                      EquivalencesDealType equivalence = equivalencesDealTypeMap.get(compara);
-
-                        // If an equivalence is found, you can use it
-                        if (equivalence != null) {
-                            // For example, you might want to update the deal type in the pago object
-                            log.info("Search tipo pago  for key Eq {} ", equivalence.getEquivalences());
-                            CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(equivalence.getEquivalences());
-                            pago.setTipoPago(catalogoTP);
-                            log.info("Found equivalence for key {}: {}", compara, equivalence.getEquivalences());
-                        } else {
-                            log.warn("No equivalence found for key: {}", compara);
+                      try{
+                        log.info("Search supplierPadre for key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
+                        Supplier supplierPadre = obtenerSupplierPadre(pago.getCodigoProveedor(), pago.getEmpresa());
+                        if(supplierPadre != null){
+                        log.info("Found PurchaseTypeCode: {}", supplierPadre.getPurchaseTypeCode());
+                        String compara = supplierPadre.getBusinessUnitCode() +"-" + supplierPadre.getPurchaseTypeCode();
+                        // Get the equivalence from the map
+                        EquivalencesDealType equivalence = equivalencesDealTypeMap.get(compara);
+                          // If an equivalence is found, you can use it
+                          if (equivalence != null) {
+                              // For example, you might want to update the deal type in the pago object
+                              log.info("Search tipo pago  for key Eq {} ", equivalence.getEquivalences());
+                              CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(equivalence.getEquivalences());
+                              pago.setTipoPago(catalogoTP);
+                              log.info("Found equivalence for key {}: {}", compara, equivalence.getEquivalences());
+                          } else {
+                              log.warn("No equivalence found for key: {}", compara);
+                          }
                         }
+                      } catch ( Exception e){
+                                log.warn("No found for supplierPadre key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
+                      }
 
-                        registrosProcesados.add(uniqueKey);
-                    }
+                          registrosProcesados.add(uniqueKey);
+                      }
 
                     if (!errores.isEmpty()) {
                         pago.setMensaje(String.join(" | ", errores));
@@ -728,7 +733,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
                 } catch (Exception e) {
-                    log.error("Error procesando línea con equivalencesDealTypeMap: " + line, e);
                     log.info("Error en línea: " + line);
                 }
             }
