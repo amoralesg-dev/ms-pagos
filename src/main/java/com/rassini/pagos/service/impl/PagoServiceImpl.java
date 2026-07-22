@@ -447,7 +447,7 @@ public class PagoServiceImpl implements PagoService {
             campos[1] = nvl(pago.getCuentaOrdenante());
             campos[2] = nvl(pago.getMonedaOrdenante());
             campos[3] = nvl(pago.getReferencia());
-            if (ConstantsSuppliers.PN.equals(pago.getEmpresa())) {
+            if (ConstantsSuppliers.PN.equals(EmpresaUtils.obtenerEmpresaPadre(pago.getEmpresa()))) {
                     campos[4] = nvl(pago.getReferencia());
             } else {
                     campos[4] = nvl(pago.getInformacionAdicional());
