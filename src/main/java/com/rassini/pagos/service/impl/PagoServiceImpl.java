@@ -22,6 +22,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
+import com.rassini.pagos.dto.AnaliticaPendientesArchivoDTO;
+import com.rassini.pagos.dto.AnaliticaPendientesEmpresaDTO;
+import com.rassini.pagos.dto.AnaliticaPendientesMonedaDTO;
+import com.rassini.pagos.dto.AnaliticaPendientesTipoPagoDTO;
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualItemDTO;
@@ -37,6 +41,7 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.service.PagoService;
+import com.rassini.pagos.util.AnaliticaPendientesUtils;
 import com.rassini.pagos.util.BuUtils;
 import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
@@ -583,6 +588,142 @@ public class PagoServiceImpl implements PagoService {
                             referenciasPorId.get(pago.getId())));
 
             pagosRepo.saveAll(pagos);
+    }
+
+    @Override
+    public List<AnaliticaPendientesArchivoDTO> obtenerAnaliticaPendientes(
+                    String bu) {
+
+            List<PagosArchivo> pendientes;
+
+            if (BuUtils.isAll(bu)) {
+
+                    pendientes = pagosRepo.findPendientesValidacionAll();
+
+            } else {
+
+                    pendientes = pagosRepo.findPendientesValidacionMultiBu(
+                                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
+            }
+
+            if (pendientes == null || pendientes.isEmpty()) {
+                    return Collections.emptyList();
+            }
+
+            Map<String, List<PagosArchivo>> pagosPorArchivo = pendientes.stream()
+                            .collect(Collectors.groupingBy(
+                                            AnaliticaPendientesUtils::obtenerNombreArchivo));
+
+            return pagosPorArchivo.entrySet()
+                            .stream()
+                            .map(entryArchivo -> {
+
+                                    AnaliticaPendientesArchivoDTO archivoDTO = new AnaliticaPendientesArchivoDTO();
+
+                                    archivoDTO.setNombreArchivo(
+                                                    entryArchivo.getKey());
+
+                                    archivoDTO.setCantidadPagos(
+                                                    (long) entryArchivo.getValue().size());
+
+                                    archivoDTO.setMontoTotal(
+                                                    AnaliticaPendientesUtils.calcularMontoTotal(
+                                                                    entryArchivo.getValue()));
+
+                                    Map<String, List<PagosArchivo>> pagosPorEmpresa = entryArchivo.getValue()
+                                                    .stream()
+                                                    .collect(Collectors.groupingBy(
+                                                                    AnaliticaPendientesUtils::obtenerEmpresa));
+
+                                    List<AnaliticaPendientesEmpresaDTO> empresas = pagosPorEmpresa.entrySet()
+                                                    .stream()
+                                                    .map(entryEmpresa -> {
+
+                                                            AnaliticaPendientesEmpresaDTO empresaDTO = new AnaliticaPendientesEmpresaDTO();
+
+                                                            empresaDTO.setEmpresa(
+                                                                            entryEmpresa.getKey());
+
+                                                            empresaDTO.setCantidadPagos(
+                                                                            (long) entryEmpresa.getValue().size());
+
+                                                            empresaDTO.setMontoTotal(
+                                                                            AnaliticaPendientesUtils.calcularMontoTotal(
+                                                                                            entryEmpresa.getValue()));
+
+                                                            Map<String, List<PagosArchivo>> pagosPorTipo = entryEmpresa
+                                                                            .getValue()
+                                                                            .stream()
+                                                                            .collect(Collectors.groupingBy(
+                                                                                            AnaliticaPendientesUtils::obtenerTipoPago));
+
+                                                            List<AnaliticaPendientesTipoPagoDTO> tiposPago = pagosPorTipo
+                                                                            .entrySet()
+                                                                            .stream()
+                                                                            .map(entryTipo -> {
+
+                                                                                    AnaliticaPendientesTipoPagoDTO tipoDTO = new AnaliticaPendientesTipoPagoDTO();
+
+                                                                                    tipoDTO.setTipoPago(
+                                                                                                    entryTipo.getKey());
+
+                                                                                    tipoDTO.setCantidadPagos(
+                                                                                                    (long) entryTipo.getValue()
+                                                                                                                    .size());
+
+                                                                                    tipoDTO.setMontoTotal(
+                                                                                                    AnaliticaPendientesUtils
+                                                                                                                    .calcularMontoTotal(
+                                                                                                                                    entryTipo.getValue()));
+
+                                                                                    Map<String, List<PagosArchivo>> pagosPorMoneda = entryTipo
+                                                                                                    .getValue()
+                                                                                                    .stream()
+                                                                                                    .collect(Collectors
+                                                                                                                    .groupingBy(
+                                                                                                                                    AnaliticaPendientesUtils::obtenerMoneda));
+
+                                                                                    List<AnaliticaPendientesMonedaDTO> monedas = pagosPorMoneda
+                                                                                                    .entrySet()
+                                                                                                    .stream()
+                                                                                                    .map(entryMoneda -> {
+
+                                                                                                            AnaliticaPendientesMonedaDTO monedaDTO = new AnaliticaPendientesMonedaDTO();
+
+                                                                                                            monedaDTO.setMoneda(
+                                                                                                                            entryMoneda.getKey());
+
+                                                                                                            monedaDTO.setCantidadPagos(
+                                                                                                                            (long) entryMoneda
+                                                                                                                                            .getValue()
+                                                                                                                                            .size());
+
+                                                                                                            monedaDTO.setMontoTotal(
+                                                                                                                            AnaliticaPendientesUtils
+                                                                                                                                            .calcularMontoTotal(
+                                                                                                                                                            entryMoneda.getValue()));
+
+                                                                                                            return monedaDTO;
+                                                                                                    })
+                                                                                                    .toList();
+
+                                                                                    tipoDTO.setMonedas(monedas);
+
+                                                                                    return tipoDTO;
+                                                                            })
+                                                                            .toList();
+
+                                                            empresaDTO.setTiposPago(tiposPago);
+
+                                                            return empresaDTO;
+                                                    })
+                                                    .toList();
+
+                                    archivoDTO.setEmpresas(empresas);
+
+                                    return archivoDTO;
+                            })
+                            .toList();
     }
 
 }

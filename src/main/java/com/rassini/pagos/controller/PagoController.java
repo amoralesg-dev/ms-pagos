@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rassini.pagos.dto.ActualizarReferenciasManualDTO;
+import com.rassini.pagos.dto.AnaliticaPendientesArchivoDTO;
 import com.rassini.pagos.dto.ClasificarPagosRequest;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualDTO;
@@ -211,6 +212,14 @@ public class PagoController {
         );
 
         return "Referencias manuales actualizadas correctamente";
+    }
+
+    @GetMapping("/analitica-pendientes")
+    public List<AnaliticaPendientesArchivoDTO> obtenerAnaliticaPendientes(
+            @RequestParam String bu) {
+                
+
+        return service.obtenerAnaliticaPendientes(bu);
     }
     
 }

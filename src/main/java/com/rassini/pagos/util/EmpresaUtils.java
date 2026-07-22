@@ -36,6 +36,7 @@ public final class EmpresaUtils {
         mapa.put("02", "09");
         mapa.put("72", "09");
         mapa.put("09", "09");
+        mapa.put("10", "09");
 
         // Independientes
         mapa.put("0301", "0301");
