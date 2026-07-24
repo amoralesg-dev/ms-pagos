@@ -28,7 +28,9 @@ public final class EmpresaUtils {
         mapa.put("0109", "0111");
         mapa.put("0110", "0111");
         mapa.put("0111", "0111");
+        mapa.put("0112", "0111");
         mapa.put("0114", "0111");
+        mapa.put("0115", "0111");
         mapa.put("0117", "0111");
         mapa.put("0120", "0111");
 
