@@ -76,7 +76,7 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                         AND p.empresa = :empresa
                         AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
                         AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-                        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
+                       AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago OR (:tipoPago = 'NOT_SELECTED'AND p.tipoPago IS NULL))
                         AND (
                             :estatus IS NULL
                             OR :estatus = ''
@@ -99,7 +99,7 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         AND p.empresa IN :empresas
         AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
         AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
+        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago OR (:tipoPago = 'NOT_SELECTED'AND p.tipoPago IS NULL))
         AND (
             :estatus IS NULL
             OR :estatus = ''
@@ -121,7 +121,7 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         WHERE p.estatus = 'PENDIENTE'
         AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
         AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago)
+        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago OR (:tipoPago = 'NOT_SELECTED'AND p.tipoPago IS NULL))
         AND (
             :estatus IS NULL
             OR :estatus = ''
