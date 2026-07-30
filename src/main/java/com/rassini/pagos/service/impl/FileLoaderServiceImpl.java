@@ -81,7 +81,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 String fecha = LocalDate.now()
                         .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-                Path loaderPath = Paths.get(rutaCarpeta, "Loader", fecha);
+                Path loaderPath = Paths.get(rutaCarpeta, "Loaded", fecha);
 
                 if (Files.notExists(loaderPath)) {
                     Files.createDirectories(loaderPath);
