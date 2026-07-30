@@ -3,6 +3,12 @@ package com.rassini.pagos.service.impl;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -53,7 +59,6 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     @Override
     public void cargarArchivos() {
 
-
         File folder = new File(rutaCarpeta);
         log.info("Procesando carpeta: {}", folder.getAbsolutePath());
 
@@ -73,18 +78,34 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                 procesarArchivo(archivo);
 
-                if (archivo.delete()) {
-                    log.info("Archivo eliminado: {}", archivo.getName());
-                } else {
-                    log.warn("No se pudo eliminar el archivo: {}", archivo.getAbsolutePath());
+                String fecha = LocalDate.now()
+                        .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+                Path loaderPath = Paths.get(rutaCarpeta, "Loaded", fecha);
+
+                if (Files.notExists(loaderPath)) {
+                    Files.createDirectories(loaderPath);
+                    log.info("Carpeta creada: {}", loaderPath);
                 }
 
+                Path destino = loaderPath.resolve(archivo.getName());
+
+                Files.move(
+                        archivo.toPath(),
+                        destino,
+                        StandardCopyOption.REPLACE_EXISTING);
+
+                log.info("Archivo movido a: {}", destino);
+
             } catch (Exception e) {
-                log.error("Error procesando archivo {}. No será eliminado.",
-                        archivo.getName(), e);
+                log.error(
+                        "Error procesando archivo {}. No será movido.",
+                        archivo.getName(),
+                        e);
             }
         }
-    }
+    }    
+    
     private boolean isBlank(String valor) {
         return valor == null || valor.trim().isEmpty();
     }
