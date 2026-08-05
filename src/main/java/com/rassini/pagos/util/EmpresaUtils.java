@@ -39,6 +39,9 @@ public final class EmpresaUtils {
         mapa.put("09", "09");
         mapa.put("10", "09");
 
+        // Grupo 99
+        mapa.put("99", "99");
+
         // Independientes
         mapa.put("0301", "0301");
         mapa.put("1000", "1000");
