@@ -490,10 +490,7 @@ public class PagoServiceImpl implements PagoService {
             campos[20] = nvl(pago.getMonedaBeneficiario());
 
             // al parecer ya no se usara
-            boolean isBeneficiaryBankValid = Objects.equals(pago.getCuentaBeneficiario(), supplier.getAccountNumber())
-                            &&
-                            Objects.equals(pago.getEmpresa(), supplier.getBusinessUnitCode()) &&
-                            Objects.equals(pago.getMonedaBeneficiario(), supplier.getSupplierCurrency());
+            boolean isBeneficiaryBankValid = true;
 
             campos[21] = isBeneficiaryBankValid
                             ? nvl(supplier.getBeneficiaryBankName())

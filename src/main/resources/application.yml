@@ -28,7 +28,7 @@ loader:
   output:
     path: C:/apps/ms-pagos/output
   schedule:
-    cron: "0 0 0 * * *"
+    cron: "0 */15 * * * *"
     zone: "America/Mexico_City"
 
 
