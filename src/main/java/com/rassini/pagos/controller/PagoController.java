@@ -71,10 +71,12 @@ public class PagoController {
         return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, pageable);
     }
 
-    @GetMapping("/enviados/filtro/paginado")
+   @GetMapping("/enviados/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
             @RequestParam String bu,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String fechaInicio,
+            @RequestParam(required = false) String fechaFin,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortField,
@@ -107,6 +109,8 @@ public class PagoController {
         return service.filtrarEnviadosPaginado(
                 bu,
                 search,
+                fechaInicio,
+                fechaFin,
                 pageable
         );
 
