@@ -152,13 +152,25 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
-        OR LOWER(p.tipoPago) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago.dealType) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        AND (
+        :fechaInicio IS NULL
+        OR :fechaInicio = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') >= FUNCTION('STR_TO_DATE', :fechaInicio, '%Y-%m-%d')
+        )
+        AND (
+        :fechaFin IS NULL
+        OR :fechaFin = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
         )
         """)
         Page<PagosArchivo> filtrarEnviadosPaginadoMultiBu(
                 @Param("empresas") List<String> empresas,
                 @Param("search") String search,
+                @Param("fechaInicio") String fechaInicio,
+                @Param("fechaFin") String fechaFin,
                 Pageable pageable);
 
     @Query("""
@@ -174,12 +186,24 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
-        OR LOWER(p.tipoPago) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago.dealType) LIKE LOWER(CONCAT('%', :search, '%'))
         OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        AND (
+        :fechaInicio IS NULL
+        OR :fechaInicio = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') >= FUNCTION('STR_TO_DATE', :fechaInicio, '%Y-%m-%d')
+        )
+        AND (
+        :fechaFin IS NULL
+        OR :fechaFin = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
         )
         """)
         Page<PagosArchivo> filtrarEnviadosPaginadoAll(
                 @Param("search") String search,
+                @Param("fechaInicio") String fechaInicio,
+                @Param("fechaFin") String fechaFin,
                 Pageable pageable);
 
         @Query("""

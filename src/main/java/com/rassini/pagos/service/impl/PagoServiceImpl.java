@@ -181,27 +181,32 @@ public class PagoServiceImpl implements PagoService {
 
         return page.map(PagoMapper::toDTO);
     }
-
-    @Override
-    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
-            String bu,
-            String search,
-            Pageable pageable) {
+        @Override
+        public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
+                String bu,
+                String search,
+                String fechaInicio,
+                String fechaFin,
+                Pageable pageable) {
 
         Page<PagosArchivo> page;
 
         if (BuUtils.isAll(bu)) {
 
             page = pagosRepo.filtrarEnviadosPaginadoAll(
-                    search,
-                    pageable);
+                        search,
+                        fechaInicio,
+                        fechaFin,
+                        pageable);
 
         } else {
 
             page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
-                    search,
-                    pageable);
+                        EmpresaUtils.obtenerEmpresasBusqueda(bu),
+                        search,
+                        fechaInicio,
+                        fechaFin,
+                        pageable);
 
         }
 
