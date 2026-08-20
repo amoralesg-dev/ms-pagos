@@ -501,16 +501,31 @@ public class PagoServiceImpl implements PagoService {
                             ? nvl(supplier.getBeneficiaryBankName())
                             : "";
 
-            String ruteo = supplier.getRoutingCodeSwift();
 
-            if (ruteo == null || ruteo.isBlank()) {
-                    ruteo = supplier.getRoutingCodeAba();
+            if(ConstantsSuppliers.Breakes.equalsIgnoreCase(pago.getEmpresa())){
+                String ruteo = supplier.getRoutingCodeAba();
+
+                if (ruteo == null || ruteo.isBlank()) {
+                        ruteo = supplier.getRoutingCodeSwift();
+                }else{
+                        log.info("ABA DETECTADO. Fecha envío original: {}", pago.getFechaEnvio());
+                        log.info("ABA DETECTADO. Fecha valor original: {}", pago.getFechaValor());
+
+                        campos[5] = sumarUnDia(pago.getFechaEnvio());
+                        campos[6] = sumarUnDia(pago.getFechaValor());
+
+                        log.info("ABA DETECTADO. Fecha envío +1: {}", campos[5]);
+                        log.info("ABA DETECTADO. Fecha valor +1: {}", campos[6]);
+                }
+                campos[22] = nvl(ruteo);
+            }else{
+                String ruteo = supplier.getRoutingCodeSwift();
+                campos[22] = nvl(ruteo);
             }
-
-            campos[22] = nvl(ruteo);
 
             campos[23] = nvl(supplier.getBankCountry());
             campos[24] = nvl(supplier.getIntermediaryAccount());
+
 
             String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
 
@@ -527,6 +542,25 @@ public class PagoServiceImpl implements PagoService {
             return String.join("|", campos);
     }
 
+    private String sumarUnDia(String fecha) {
+            if (fecha == null || fecha.isBlank()) {
+                    return fecha;
+            }
+
+            try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+                    LocalDate date = LocalDate.parse(fecha, formatter);
+
+                    return date
+                                    .plusDays(1)
+                                    .format(formatter);
+
+            } catch (Exception e) {
+                    log.error("Error procesando fecha [{}]", fecha, e);
+                    return fecha;
+            }
+    }
     private String nvl(String val) {
         return val == null ? "" : val;
     }
