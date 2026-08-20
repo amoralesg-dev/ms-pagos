@@ -507,9 +507,15 @@ public class PagoServiceImpl implements PagoService {
 
                 if (ruteo == null || ruteo.isBlank()) {
                         ruteo = supplier.getRoutingCodeSwift();
-                }else{//si es ABA, se le suma un dia a la fecha de envio y valor
+                }else{
+                        log.info("ABA DETECTADO. Fecha envío original: {}", pago.getFechaEnvio());
+                        log.info("ABA DETECTADO. Fecha valor original: {}", pago.getFechaValor());
+
                         campos[5] = sumarUnDia(pago.getFechaEnvio());
                         campos[6] = sumarUnDia(pago.getFechaValor());
+
+                        log.info("ABA DETECTADO. Fecha envío +1: {}", campos[5]);
+                        log.info("ABA DETECTADO. Fecha valor +1: {}", campos[6]);
                 }
                 campos[22] = nvl(ruteo);
             }else{
@@ -537,19 +543,24 @@ public class PagoServiceImpl implements PagoService {
     }
 
     private String sumarUnDia(String fecha) {
-        if (fecha == null || fecha.isBlank()) {
-                return "";
-        }
+            if (fecha == null || fecha.isBlank()) {
+                    return fecha;
+            }
 
-        try {
-                LocalDate localDate = LocalDate.parse(fecha);
-                return localDate.plusDays(1).toString();
-        } catch (Exception e) {
-                log.warn("No fue posible sumar un día a la fecha [{}]", fecha, e);
-                return fecha;
-        }
-}
+            try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
+                    LocalDate date = LocalDate.parse(fecha, formatter);
+
+                    return date
+                                    .plusDays(1)
+                                    .format(formatter);
+
+            } catch (Exception e) {
+                    log.error("Error procesando fecha [{}]", fecha, e);
+                    return fecha;
+            }
+    }
     private String nvl(String val) {
         return val == null ? "" : val;
     }
