@@ -501,16 +501,25 @@ public class PagoServiceImpl implements PagoService {
                             ? nvl(supplier.getBeneficiaryBankName())
                             : "";
 
-            String ruteo = supplier.getRoutingCodeSwift();
 
-            if (ruteo == null || ruteo.isBlank()) {
-                    ruteo = supplier.getRoutingCodeAba();
+            if(ConstantsSuppliers.Breakes.equalsIgnoreCase(pago.getEmpresa())){
+                String ruteo = supplier.getRoutingCodeAba();
+
+                if (ruteo == null || ruteo.isBlank()) {
+                        ruteo = supplier.getRoutingCodeSwift();
+                }else{//si es ABA, se le suma un dia a la fecha de envio y valor
+                        campos[5] = sumarUnDia(pago.getFechaEnvio());
+                        campos[6] = sumarUnDia(pago.getFechaValor());
+                }
+                campos[22] = nvl(ruteo);
+            }else{
+                String ruteo = supplier.getRoutingCodeSwift();
+                campos[22] = nvl(ruteo);
             }
-
-            campos[22] = nvl(ruteo);
 
             campos[23] = nvl(supplier.getBankCountry());
             campos[24] = nvl(supplier.getIntermediaryAccount());
+
 
             String intRuteo = supplier.getIntermediaryRoutingCodeSwift();
 
@@ -526,6 +535,20 @@ public class PagoServiceImpl implements PagoService {
 
             return String.join("|", campos);
     }
+
+    private String sumarUnDia(String fecha) {
+        if (fecha == null || fecha.isBlank()) {
+                return "";
+        }
+
+        try {
+                LocalDate localDate = LocalDate.parse(fecha);
+                return localDate.plusDays(1).toString();
+        } catch (Exception e) {
+                log.warn("No fue posible sumar un día a la fecha [{}]", fecha, e);
+                return fecha;
+        }
+}
 
     private String nvl(String val) {
         return val == null ? "" : val;

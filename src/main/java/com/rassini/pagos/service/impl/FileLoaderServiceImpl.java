@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import com.rassini.pagos.constants.ErrorCodes;
 import com.rassini.pagos.entity.CatalogoTipoPago;
 import com.rassini.pagos.entity.EquivalencesDealType;
+import com.rassini.pagos.entity.PagoReferenciaProveedor;
 import com.rassini.pagos.entity.PagosArchivo;
 import com.rassini.pagos.entity.Supplier;
 import com.rassini.pagos.exception.BusinessException;
@@ -30,6 +31,7 @@ import com.rassini.pagos.repository.CatalogoTipoPagoRepository;
 import com.rassini.pagos.repository.EquivalencesDealTypeRepository;
 import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
+import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.util.EmpresaUtils;
 import com.rassini.pagos.util.TxtParser;
@@ -44,16 +46,21 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     private final SupplierRepository supplierRepository;
     private final EquivalencesDealTypeRepository equivalencesDealTypeRepository;
     private final CatalogoTipoPagoRepository catalogoTipoPagoRepository;
+    private final EmpresaTipoPagoCache empresaTipoPagoCache;
 
     @Value("${loader.path}")
     private String rutaCarpeta;
 
 
-    public FileLoaderServiceImpl(PagosArchivoRepository repository, SupplierRepository supplierRepository, EquivalencesDealTypeRepository equivalencesDealTypeRepository, CatalogoTipoPagoRepository catalogoTipoPagoRepository) {
+    public FileLoaderServiceImpl(PagosArchivoRepository repository, SupplierRepository supplierRepository, 
+        EquivalencesDealTypeRepository equivalencesDealTypeRepository, 
+        CatalogoTipoPagoRepository catalogoTipoPagoRepository, 
+        EmpresaTipoPagoCache empresaTipoPagoCache) {
         this.repository = repository;
         this.supplierRepository = supplierRepository;
         this.equivalencesDealTypeRepository = equivalencesDealTypeRepository;
         this.catalogoTipoPagoRepository = catalogoTipoPagoRepository;
+        this.empresaTipoPagoCache = empresaTipoPagoCache;
     }
 
     @Override
@@ -641,21 +648,11 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
       //obtener lista de EquivalencesDealType y cargarlas en un mapa paara poder compararlos
       //llave del mapa bu-code y guarda objeto EquivalencesDealType
-        final Map<String, EquivalencesDealType> equivalencesDealTypeMap = equivalencesDealTypeRepository.findAll().stream()
-            .collect(Collectors.toMap(
-                equivalence -> equivalence.getBu() + "-" + equivalence.getCode(),
-                equivalence -> equivalence,
-                (existing, replacement) -> existing  // Mantiene el primero
-            ));
+        final Map<String, EquivalencesDealType> equivalencesDealTypeMap = empresaTipoPagoCache.getEquivalencesDealTypeMap();
 
          //obtener lista de CatalogoTipoPago y cargarlas en un mapa
         //llave del mapa bu-dealType y guarda objeto CatalogoTipoPago
-        final Map<String, CatalogoTipoPago> catalogoTipoPagoMap = catalogoTipoPagoRepository.findAll().stream()
-          .collect(Collectors.toMap(
-              catalogo -> catalogo.getDealType(),
-              catalogo -> catalogo,
-              (existing, replacement) -> existing  // Mantiene el primero
-          ));
+        final Map<String, CatalogoTipoPago> catalogoTipoPagoMap = empresaTipoPagoCache.getCatalogoTipoPagoMap();
 
         List<PagosArchivo> batch = new ArrayList<>();
         Set<String> registrosProcesados = new HashSet<>();
@@ -712,30 +709,12 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                                     "Registro duplicado en archivo o base de datos"));
 
                     } else {
-                      try{
-                        log.info("Search supplierPadre for key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
-                        Supplier supplierPadre = obtenerSupplierPadre(pago.getCodigoProveedor(), pago.getEmpresa());
-                        if(supplierPadre != null){
-                        log.info("Found PurchaseTypeCode: {}", supplierPadre.getPurchaseTypeCode());
-                        String compara = supplierPadre.getBusinessUnitCode() +"-" + supplierPadre.getPurchaseTypeCode();
-                        // Get the equivalence from the map
-                        EquivalencesDealType equivalence = equivalencesDealTypeMap.get(compara);
-                          // If an equivalence is found, you can use it
-                          if (equivalence != null) {
-                              // For example, you might want to update the deal type in the pago object
-                              log.info("Search tipo pago  for key Eq {} ", equivalence.getEquivalences());
-                              CatalogoTipoPago catalogoTP = catalogoTipoPagoMap.get(equivalence.getEquivalences());
-                              pago.setTipoPago(catalogoTP);
-                              log.info("Found equivalence for key {}: {}", compara, equivalence.getEquivalences());
-                          } else {
-                              log.warn("No equivalence found for key: {}", compara);
-                          }
-                        }
-                      } catch ( Exception e){
-                                log.warn("No found for supplierPadre key cp {} : bu {}", pago.getCodigoProveedor(), pago.getEmpresa());
-                      }
+                        asignarTipoPagoPorSupplierPadre(pago, equivalencesDealTypeMap, catalogoTipoPagoMap);
 
-                          registrosProcesados.add(uniqueKey);
+                        asignarReferenciaProveedor(pago);
+
+                        registrosProcesados.add(uniqueKey);
+
                       }
 
                     if (!errores.isEmpty()) {
@@ -766,6 +745,92 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
         } catch (Exception e) {
             throw new RuntimeException("Error procesando archivo: " + archivo.getName(), e);
+        }
+    }
+
+
+    private void asignarReferenciaProveedor(PagosArchivo pago) {
+
+        String key = pago.getEmpresa() + "-" + pago.getCodigoProveedor();
+
+        PagoReferenciaProveedor referenciaProveedor =
+                empresaTipoPagoCache.getReferenciaProveedorMap().get(key);
+
+        if (referenciaProveedor == null) {
+            log.debug("No reference configuration found for key {}", key);
+            return;
+        }
+
+        pago.setReferenciaManual(referenciaProveedor.getReferencia());
+
+        log.info(
+                "Reference {} assigned for supplier {}",
+                referenciaProveedor.getReferencia(),
+                key
+        );
+    }
+
+
+
+    private void asignarTipoPagoPorSupplierPadre(PagosArchivo pago, Map<String, EquivalencesDealType> equivalencesDealTypeMap, Map<String, CatalogoTipoPago> catalogoTipoPagoMap) {
+
+        
+        try {
+            log.info(
+                "Search supplierPadre for key cp {} : bu {}",
+                pago.getCodigoProveedor(),
+                pago.getEmpresa()
+            );
+
+            Supplier supplierPadre = obtenerSupplierPadre(
+                pago.getCodigoProveedor(),
+                pago.getEmpresa()
+            );
+
+            if (supplierPadre == null) {
+                return;
+            }
+
+            log.info(
+                "Found PurchaseTypeCode: {}",
+                supplierPadre.getPurchaseTypeCode()
+            );
+
+            String keyEquivalencia = supplierPadre.getBusinessUnitCode()
+                + "-"
+                + supplierPadre.getPurchaseTypeCode();
+
+            EquivalencesDealType equivalence =
+                equivalencesDealTypeMap.get(keyEquivalencia);
+
+            if (equivalence == null) {
+                log.warn("No equivalence found for key: {}", keyEquivalencia);
+                return;
+            }
+
+            log.info(
+                "Search tipo pago for key Eq {}",
+                equivalence.getEquivalences()
+            );
+
+            CatalogoTipoPago catalogoTipoPago =
+                catalogoTipoPagoMap.get(equivalence.getEquivalences());
+
+            pago.setTipoPago(catalogoTipoPago);
+
+            log.info(
+                "Found equivalence for key {}: {}",
+                keyEquivalencia,
+                equivalence.getEquivalences()
+            );
+
+        } catch (Exception e) {
+            log.warn(
+                "No found for supplierPadre key cp {} : bu {}",
+                pago.getCodigoProveedor(),
+                pago.getEmpresa(),
+                e
+            );
         }
     }
 
