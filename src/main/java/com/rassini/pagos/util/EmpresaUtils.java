@@ -22,7 +22,7 @@ public final class EmpresaUtils {
 
         Map<String, String> mapa = new HashMap<>();
 
-        // Grupo 0111
+        // Grupo 0111 corporativo
         mapa.put("0112", "0111");
         mapa.put("0103", "0111");
         mapa.put("0109", "0111");
@@ -33,13 +33,13 @@ public final class EmpresaUtils {
         mapa.put("0117", "0111");
         mapa.put("0120", "0111");
 
-        // Grupo 09
+        // Grupo 09 piedras negras
         mapa.put("02", "09");
         mapa.put("72", "09");
         mapa.put("09", "09");
         mapa.put("10", "09");
 
-        // Grupo 99
+        // Grupo 99 piedras negras
         mapa.put("99", "99");
 
         // Independientes
@@ -110,6 +110,19 @@ public final class EmpresaUtils {
                         padre -> obtenerEmpresasHijas(padre)
                                 .stream())
                 .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene de forma dinamica y ordenada todas las empresas padre (BUs) configuradas
+     * en el mapa de empresas.
+     */
+    public static List<String> obtenerTodasEmpresasPadre() {
+        return EMPRESA_PADRE_MAP.values()
+                .stream()
+                .filter(val -> val != null && !val.isBlank())
+                .distinct()
+                .sorted()
                 .collect(Collectors.toList());
     }
 }

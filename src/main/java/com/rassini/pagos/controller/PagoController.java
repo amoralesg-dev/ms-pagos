@@ -64,19 +64,25 @@ public class PagoController {
             @RequestParam(required = false) String rfcBeneficiario,
             @RequestParam(required = false) String tipoPago,
             @RequestParam(required = false) String estatus,
+            @RequestParam(required = false) String moneda,
+            @RequestParam(required = false) String monto,
+            @RequestParam(required = false) String proveedor,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, pageable);
+        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, moneda, monto, proveedor, pageable);
     }
 
    @GetMapping("/enviados/filtro/paginado")
-    public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
+    public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
             @RequestParam String bu,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String fechaInicio,
             @RequestParam(required = false) String fechaFin,
+            @RequestParam(required = false) String moneda,
+            @RequestParam(required = false) String monto,
+            @RequestParam(required = false) String buFiltro,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortField,
@@ -111,6 +117,9 @@ public class PagoController {
                 search,
                 fechaInicio,
                 fechaFin,
+                moneda,
+                monto,
+                buFiltro,
                 pageable
         );
 

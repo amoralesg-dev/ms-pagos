@@ -76,12 +76,20 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                         AND p.empresa = :empresa
                         AND (:codigoProveedor IS NULL OR :codigoProveedor = '' OR p.codigoProveedor = :codigoProveedor)
                         AND (:rfcBeneficiario IS NULL OR :rfcBeneficiario = '' OR p.rfcBeneficiario = :rfcBeneficiario)
-                       AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago OR (:tipoPago = 'NOT_SELECTED'AND p.tipoPago IS NULL))
+                        AND (:tipoPago IS NULL OR :tipoPago = '' OR p.tipoPago.dealType = :tipoPago OR (:tipoPago = 'NOT_SELECTED'AND p.tipoPago IS NULL))
                         AND (
                             :estatus IS NULL
                             OR :estatus = ''
                             OR :estatus = 'Todos'
                             OR p.estatus = :estatus
+                        )
+                        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+                        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
+                        AND (
+                            :proveedor IS NULL
+                            OR :proveedor = ''
+                            OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :proveedor, '%'))
+                            OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :proveedor, '%'))
                         )
                         """)
         Page<PagosArchivo> filtrarPaginado(
@@ -90,6 +98,9 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                         @Param("rfcBeneficiario") String rfcBeneficiario,
                         @Param("tipoPago") String tipoPago,
                         @Param("estatus") String estatus,
+                        @Param("moneda") String moneda,
+                        @Param("monto") String monto,
+                        @Param("proveedor") String proveedor,
                         Pageable pageable);
 
         @Query("""
@@ -106,6 +117,14 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             OR :estatus = 'Todos'
             OR p.estatus = :estatus
         )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
+        AND (
+            :proveedor IS NULL
+            OR :proveedor = ''
+            OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :proveedor, '%'))
+            OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :proveedor, '%'))
+        )
         """)
         Page<PagosArchivo> filtrarPaginadoMultiBu(
                 @Param("empresas") List<String> empresas,
@@ -113,6 +132,9 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                 @Param("rfcBeneficiario") String rfcBeneficiario,
                 @Param("tipoPago") String tipoPago,
                 @Param("estatus") String estatus,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto,
+                @Param("proveedor") String proveedor,
                 Pageable pageable);
         
         @Query("""
@@ -128,12 +150,23 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
             OR :estatus = 'Todos'
             OR p.estatus = :estatus
         )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
+        AND (
+            :proveedor IS NULL
+            OR :proveedor = ''
+            OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :proveedor, '%'))
+            OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :proveedor, '%'))
+        )
         """)
         Page<PagosArchivo> filtrarPaginadoAll(
                 @Param("codigoProveedor") String codigoProveedor,
                 @Param("rfcBeneficiario") String rfcBeneficiario,
                 @Param("tipoPago") String tipoPago,
                 @Param("estatus") String estatus,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto,
+                @Param("proveedor") String proveedor,
                 Pageable pageable);
 
       
@@ -165,12 +198,16 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         OR :fechaFin = ''
         OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
         )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
         """)
         Page<PagosArchivo> filtrarEnviadosPaginadoMultiBu(
                 @Param("empresas") List<String> empresas,
                 @Param("search") String search,
                 @Param("fechaInicio") String fechaInicio,
                 @Param("fechaFin") String fechaFin,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto,
                 Pageable pageable);
 
     @Query("""
@@ -199,12 +236,90 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
         OR :fechaFin = ''
         OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
         )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
         """)
         Page<PagosArchivo> filtrarEnviadosPaginadoAll(
                 @Param("search") String search,
                 @Param("fechaInicio") String fechaInicio,
                 @Param("fechaFin") String fechaFin,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto,
                 Pageable pageable);
+
+        @Query("""
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'ENVIADO'
+        AND p.empresa IN :empresas
+        AND (
+        :search IS NULL
+        OR :search = ''
+        OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago.dealType) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        AND (
+        :fechaInicio IS NULL
+        OR :fechaInicio = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') >= FUNCTION('STR_TO_DATE', :fechaInicio, '%Y-%m-%d')
+        )
+        AND (
+        :fechaFin IS NULL
+        OR :fechaFin = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
+        )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
+        """)
+        List<PagosArchivo> filtrarEnviadosListMultiBu(
+                @Param("empresas") List<String> empresas,
+                @Param("search") String search,
+                @Param("fechaInicio") String fechaInicio,
+                @Param("fechaFin") String fechaFin,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto);
+
+        @Query("""
+        SELECT p
+        FROM PagosArchivo p
+        WHERE p.estatus = 'ENVIADO'
+        AND (
+        :search IS NULL
+        OR :search = ''
+        OR LOWER(p.codigoProveedor) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.rfcBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreBeneficiario) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.referencia) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivo) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.nombreArchivoEnvio) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.tipoPago.dealType) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.estatus) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        AND (
+        :fechaInicio IS NULL
+        OR :fechaInicio = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') >= FUNCTION('STR_TO_DATE', :fechaInicio, '%Y-%m-%d')
+        )
+        AND (
+        :fechaFin IS NULL
+        OR :fechaFin = ''
+        OR FUNCTION('STR_TO_DATE', p.fechaEnvio, '%m/%d/%Y') <= FUNCTION('STR_TO_DATE', :fechaFin, '%Y-%m-%d')
+        )
+        AND (:moneda IS NULL OR :moneda = '' OR p.moneda = :moneda)
+        AND (:monto IS NULL OR :monto = '' OR p.monto = :monto)
+        """)
+        List<PagosArchivo> filtrarEnviadosListAll(
+                @Param("search") String search,
+                @Param("fechaInicio") String fechaInicio,
+                @Param("fechaFin") String fechaFin,
+                @Param("moneda") String moneda,
+                @Param("monto") String monto);
 
         @Query("""
                         SELECT p

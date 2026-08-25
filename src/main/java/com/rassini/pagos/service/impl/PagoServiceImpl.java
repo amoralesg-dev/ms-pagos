@@ -154,6 +154,9 @@ public class PagoServiceImpl implements PagoService {
             String rfcBeneficiario,
             String tipoPago,
             String estatus,
+            String moneda,
+            String monto,
+            String proveedor,
             Pageable pageable) {
 
         Page<PagosArchivo> page;
@@ -165,53 +168,108 @@ public class PagoServiceImpl implements PagoService {
                     rfcBeneficiario,
                     tipoPago,
                     estatus,
+                    moneda,
+                    monto,
+                    proveedor,
                     pageable);
 
         } else {
 
             page = pagosRepo.filtrarPaginadoMultiBu(
-                    BuUtils.splitBus(bu),
+                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
                     codigoProveedor,
                     rfcBeneficiario,
                     tipoPago,
                     estatus,
+                    moneda,
+                    monto,
+                    proveedor,
                     pageable);
 
         }
 
         return page.map(PagoMapper::toDTO);
     }
-        @Override
-        public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
-                String bu,
-                String search,
-                String fechaInicio,
-                String fechaFin,
-                Pageable pageable) {
+    @Override
+    public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
+            String bu,
+            String search,
+            String fechaInicio,
+            String fechaFin,
+            String moneda,
+            String monto,
+            String buFiltro,
+            Pageable pageable) {
 
+        String buParaConsulta = (buFiltro != null && !buFiltro.isBlank() && !"ALL".equalsIgnoreCase(buFiltro)) ? buFiltro : bu;
         Page<PagosArchivo> page;
+        List<PagosArchivo> allList;
 
-        if (BuUtils.isAll(bu)) {
+        if (BuUtils.isAll(buParaConsulta)) {
 
             page = pagosRepo.filtrarEnviadosPaginadoAll(
                         search,
                         fechaInicio,
                         fechaFin,
+                        moneda,
+                        monto,
                         pageable);
+
+            allList = pagosRepo.filtrarEnviadosListAll(
+                        search,
+                        fechaInicio,
+                        fechaFin,
+                        moneda,
+                        monto);
 
         } else {
 
             page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
-                        EmpresaUtils.obtenerEmpresasBusqueda(bu),
+                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
                         search,
                         fechaInicio,
                         fechaFin,
+                        moneda,
+                        monto,
                         pageable);
+
+            allList = pagosRepo.filtrarEnviadosListMultiBu(
+                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                        search,
+                        fechaInicio,
+                        fechaFin,
+                        moneda,
+                        monto);
 
         }
 
-        return page.map(PagoMapper::toDTO);
+        Page<PagoPendienteDTO> dtoPage = page.map(PagoMapper::toDTO);
 
+        // Calcular total y sumatorias por moneda en Java de forma segura
+        long totalPagos = allList.size();
+
+        java.util.Map<String, Double> sumasMap = allList.stream()
+                .filter(p -> p.getMoneda() != null && !p.getMoneda().isBlank())
+                .collect(java.util.stream.Collectors.groupingBy(
+                        PagosArchivo::getMoneda,
+                        java.util.stream.Collectors.summingDouble(p -> {
+                            try {
+                                return p.getMonto() != null ? Double.parseDouble(p.getMonto()) : 0.0;
+                            } catch (Exception e) {
+                                return 0.0;
+                            }
+                        })
+                ));
+
+        List<com.rassini.pagos.dto.SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
+                .map(entry -> new com.rassini.pagos.dto.SumaPorMonedaDTO(entry.getKey(), entry.getValue()))
+                .collect(java.util.stream.Collectors.toList());
+
+        return com.rassini.pagos.dto.PagosEnviadosResponseDTO.builder()
+                .page(dtoPage)
+                .totalPagos(totalPagos)
+                .sumas(sumasList)
+                .build();
     }
     
 
