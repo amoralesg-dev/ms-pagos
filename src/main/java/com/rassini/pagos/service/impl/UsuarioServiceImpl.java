@@ -47,4 +47,28 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .activo(usuario.getActivo())
                 .build();
     }
+
+    @Override
+    public java.util.List<com.rassini.pagos.dto.BuDTO> obtenerBusUsuario(String username) {
+        Usuario usuario = usuarioRepository.findByUsuarioAndActivoTrue(username)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado o inactivo"));
+
+        String buStr = usuario.getBu();
+        if (buStr == null || buStr.isBlank()) {
+            return java.util.List.of();
+        }
+
+        java.util.List<com.rassini.pagos.dto.BuDTO> list = new java.util.ArrayList<>();
+        if ("ALL".equalsIgnoreCase(buStr.trim())) {
+            list.add(new com.rassini.pagos.dto.BuDTO("ALL", "ALL"));
+            for (String p : com.rassini.pagos.util.EmpresaUtils.obtenerTodasEmpresasPadre()) {
+                list.add(new com.rassini.pagos.dto.BuDTO(p, p));
+            }
+        } else {
+            for (String b : com.rassini.pagos.util.BuUtils.splitBus(buStr)) {
+                list.add(new com.rassini.pagos.dto.BuDTO(b, b));
+            }
+        }
+        return list;
+    }
 }
