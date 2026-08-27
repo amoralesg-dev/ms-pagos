@@ -193,53 +193,67 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
             String bu,
-            String search,
-            String fechaInicio,
-            String fechaFin,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            String tipoPago,
             String moneda,
             String monto,
-            String buFiltro,
+            String proveedor,
+            String fechaInicio,
+            String fechaFin,
             Pageable pageable) {
 
-        String buParaConsulta = (buFiltro != null && !buFiltro.isBlank() && !"ALL".equalsIgnoreCase(buFiltro)) ? buFiltro : bu;
+        String buParaConsulta = bu;
         Page<PagosArchivo> page;
         List<PagosArchivo> allList;
 
         if (BuUtils.isAll(buParaConsulta)) {
 
             page = pagosRepo.filtrarEnviadosPaginadoAll(
-                        search,
-                        fechaInicio,
-                        fechaFin,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
                         moneda,
                         monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin,
                         pageable);
 
             allList = pagosRepo.filtrarEnviadosListAll(
-                        search,
-                        fechaInicio,
-                        fechaFin,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
                         moneda,
-                        monto);
+                        monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin);
 
         } else {
 
             page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
                         EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
-                        search,
-                        fechaInicio,
-                        fechaFin,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
                         moneda,
                         monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin,
                         pageable);
 
             allList = pagosRepo.filtrarEnviadosListMultiBu(
                         EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
-                        search,
-                        fechaInicio,
-                        fechaFin,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
                         moneda,
-                        monto);
+                        monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin);
 
         }
 
@@ -276,22 +290,44 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public Page<PagoPendienteDTO> filtrarErroresPaginado(
             String bu,
-            String search,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            String tipoPago,
+            String moneda,
+            String monto,
+            String proveedor,
+            String fechaInicio,
+            String fechaFin,
             Pageable pageable) {
 
+        String buParaConsulta = bu;
         Page<PagosArchivo> page;
 
-        if (BuUtils.isAll(bu)) {
+        if (BuUtils.isAll(buParaConsulta)) {
 
             page = pagosRepo.filtrarErroresPaginadoAll(
-                    search,
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    moneda,
+                    monto,
+                    proveedor,
+                    fechaInicio,
+                    fechaFin,
                     pageable);
 
         } else {
 
             page = pagosRepo.filtrarErroresPaginadoMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
-                    search,
+                    EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    moneda,
+                    monto,
+                    proveedor,
+                    fechaInicio,
+                    fechaFin,
                     pageable);
 
         }

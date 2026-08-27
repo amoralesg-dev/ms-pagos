@@ -26,10 +26,13 @@ public interface PagoService {
         String moneda, String monto, String proveedor, Pageable pageable);
 
     com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
-        String bu, String search, String fechaInicio, String fechaFin,
-        String moneda, String monto, String buFiltro, Pageable pageable);
+        String bu, String codigoProveedor, String rfcBeneficiario, String tipoPago,
+        String moneda, String monto, String proveedor, String fechaInicio, String fechaFin,
+        Pageable pageable);
 
-    Page<PagoPendienteDTO> filtrarErroresPaginado(String bu, String search, Pageable pageable);
+    Page<PagoPendienteDTO> filtrarErroresPaginado(
+        String bu, String codigoProveedor, String rfcBeneficiario, String tipoPago,
+        String moneda, String monto, String proveedor, String fechaInicio, String fechaFin, Pageable pageable);
 
     ValidacionEnvioDTO  validarPagosPendientes(String bu);
 

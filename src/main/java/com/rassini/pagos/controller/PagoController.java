@@ -74,15 +74,17 @@ public class PagoController {
         return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, moneda, monto, proveedor, pageable);
     }
 
-   @GetMapping("/enviados/filtro/paginado")
+    @GetMapping("/enviados/filtro/paginado")
     public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
             @RequestParam String bu,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String fechaInicio,
-            @RequestParam(required = false) String fechaFin,
+            @RequestParam(required = false) String codigoProveedor,
+            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String tipoPago,
             @RequestParam(required = false) String moneda,
             @RequestParam(required = false) String monto,
-            @RequestParam(required = false) String buFiltro,
+            @RequestParam(required = false) String proveedor,
+            @RequestParam(required = false) String fechaInicio,
+            @RequestParam(required = false) String fechaFin,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortField,
@@ -114,12 +116,14 @@ public class PagoController {
 
         return service.filtrarEnviadosPaginado(
                 bu,
-                search,
-                fechaInicio,
-                fechaFin,
+                codigoProveedor,
+                rfcBeneficiario,
+                tipoPago,
                 moneda,
                 monto,
-                buFiltro,
+                proveedor,
+                fechaInicio,
+                fechaFin,
                 pageable
         );
 
@@ -128,7 +132,14 @@ public class PagoController {
     @GetMapping("/errores/filtro/paginado")
     public Page<PagoPendienteDTO> filtrarErroresPaginado(
             @RequestParam String bu,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String codigoProveedor,
+            @RequestParam(required = false) String rfcBeneficiario,
+            @RequestParam(required = false) String tipoPago,
+            @RequestParam(required = false) String moneda,
+            @RequestParam(required = false) String monto,
+            @RequestParam(required = false) String proveedor,
+            @RequestParam(required = false) String fechaInicio,
+            @RequestParam(required = false) String fechaFin,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortField,
@@ -157,7 +168,14 @@ public class PagoController {
 
             return service.filtrarErroresPaginado(
                     bu,
-                    search,
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    moneda,
+                    monto,
+                    proveedor,
+                    fechaInicio,
+                    fechaFin,
                     pageable);
     }
 

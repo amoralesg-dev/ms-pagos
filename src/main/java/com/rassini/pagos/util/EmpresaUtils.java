@@ -119,10 +119,18 @@ public final class EmpresaUtils {
      */
     public static List<String> obtenerTodasEmpresasPadre() {
         return EMPRESA_PADRE_MAP.values()
-                .stream()
-                .filter(val -> val != null && !val.isBlank())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+                 .stream()
+                 .filter(val -> val != null && !val.isBlank())
+                 .distinct()
+                 .sorted()
+                 .collect(Collectors.toList());
+    }
+
+    public static String obtenerEmpresaPadreSeguro(String empresa) {
+        if (empresa == null || empresa.isBlank()) {
+            return "";
+        }
+        String padre = EMPRESA_PADRE_MAP.get(empresa.trim());
+        return padre != null ? padre : empresa.trim();
     }
 }
