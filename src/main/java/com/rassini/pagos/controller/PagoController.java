@@ -47,7 +47,7 @@ public class PagoController {
         Map.entry("referencia", "referencia"),
         Map.entry("nombreArchivo", "nombreArchivo"),
         Map.entry("nombreArchivoEnvio", "nombreArchivoEnvio"),
-        Map.entry("tipoPago.dealType", "tipoPago.dealType"),
+        Map.entry("tipoPago", "tipoPago.dealType"),
         Map.entry("estatus", "estatus"),
         Map.entry("fechaEnvio", "fechaEnvio")
     );
