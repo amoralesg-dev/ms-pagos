@@ -23,6 +23,10 @@ import com.rassini.pagos.dto.ReferenciaManualDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.PagoService;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.jpa.domain.JpaSort;
 
 @RestController
 @RequestMapping("/pagos")
@@ -30,9 +34,46 @@ public class PagoController {
 
     private final PagoService service;
     private final EmpresaTipoPagoCache cache;
+    private static final Logger log = LoggerFactory.getLogger(PagoController.class);
+
+    private static final Map<String, String> ALLOWED_SORT_FIELDS = Map.ofEntries(
+        Map.entry("id", "id"),
+        Map.entry("empresa", "empresa"),
+        Map.entry("codigoProveedor", "codigoProveedor"),
+        Map.entry("rfcBeneficiario", "rfcBeneficiario"),
+        Map.entry("nombreBeneficiario", "nombreBeneficiario"),
+        Map.entry("monto", "monto"),
+        Map.entry("moneda", "moneda"),
+        Map.entry("referencia", "referencia"),
+        Map.entry("nombreArchivo", "nombreArchivo"),
+        Map.entry("nombreArchivoEnvio", "nombreArchivoEnvio"),
+        Map.entry("tipoPago", "tipoPago.dealType"),
+        Map.entry("estatus", "estatus"),
+        Map.entry("fechaEnvio", "fechaEnvio")
+    );
+
+    private Pageable createSafePageable(int page, int size, String sortField, String sortOrder) {
+        if (sortField == null || sortField.isBlank()) {
+            return PageRequest.of(page, size);
+        }
+
+        String mappedField = ALLOWED_SORT_FIELDS.get(sortField);
+        if (mappedField == null) {
+            log.warn("Invalid sortField requested: {}", sortField);
+            return PageRequest.of(page, size);
+        }
+
+        Sort.Direction direction = "DESC".equalsIgnoreCase(sortOrder) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        if ("monto".equals(mappedField)) {
+            return PageRequest.of(page, size, JpaSort.unsafe(direction, "CAST(monto AS big_decimal)"));
+        }
+
+        return PageRequest.of(page, size, Sort.by(direction, mappedField));
+    }
 
     public PagoController(PagoService service,
-                          EmpresaTipoPagoCache cache) { //
+                          EmpresaTipoPagoCache cache) {
         this.service = service;
         this.cache = cache;
     }
@@ -68,10 +109,14 @@ public class PagoController {
             @RequestParam(required = false) String monto,
             @RequestParam(required = false) String proveedor,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortOrder) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        return service.filtrarPendientesPaginado(bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, moneda, monto, proveedor, pageable);
+        Pageable pageable = createSafePageable(page, size, sortField, sortOrder);
+
+        return service.filtrarPendientesPaginado(
+                bu, codigoProveedor, rfcBeneficiario, tipoPago, estatus, moneda, monto, proveedor, pageable);
     }
 
     @GetMapping("/enviados/filtro/paginado")
@@ -90,29 +135,7 @@ public class PagoController {
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder) {
 
-        Pageable pageable;
-
-        if (sortField != null && !sortField.isBlank()) {
-
-            Sort.Direction direction =
-                    "DESC".equalsIgnoreCase(sortOrder)
-                            ? Sort.Direction.DESC
-                            : Sort.Direction.ASC;
-
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    Sort.by(direction, sortField)
-            );
-
-        } else {
-
-            pageable = PageRequest.of(
-                    page,
-                    size
-            );
-
-        }
+        Pageable pageable = createSafePageable(page, size, sortField, sortOrder);
 
         return service.filtrarEnviadosPaginado(
                 bu,
@@ -145,26 +168,7 @@ public class PagoController {
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder) {
 
-            Pageable pageable;
-
-            if (sortField != null && !sortField.isBlank()) {
-
-                Sort.Direction direction =
-                        "DESC".equalsIgnoreCase(sortOrder)
-                                ? Sort.Direction.DESC
-                                : Sort.Direction.ASC;
-
-                pageable = PageRequest.of(
-                        page,
-                        size,
-                        Sort.by(direction, sortField)
-                );
-
-            } else {
-
-                pageable = PageRequest.of(page, size);
-
-            }
+            Pageable pageable = createSafePageable(page, size, sortField, sortOrder);
 
             return service.filtrarErroresPaginado(
                     bu,

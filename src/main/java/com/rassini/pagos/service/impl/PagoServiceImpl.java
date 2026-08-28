@@ -484,7 +484,11 @@ public class PagoServiceImpl implements PagoService {
 
                                                     String ultimos8 = fileLoaderService.obtenerUltimos8DigitosCuenta(
                                                                     pago.getCuentaBeneficiario());
-
+                                                        
+                                                    log.info("Obteniendo supplier para proveedor: {}, empresa: {}, ultimos8: {}",
+                                                                    pago.getCodigoProveedor(),
+                                                                    pago.getEmpresa(),
+                                                                    ultimos8);
                                                     supplier = fileLoaderService.obtenerSupplierPadrePorCuenta(
                                                                     pago.getCodigoProveedor(),
                                                                     pago.getEmpresa(),
