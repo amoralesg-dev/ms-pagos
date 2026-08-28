@@ -154,6 +154,9 @@ public class PagoServiceImpl implements PagoService {
             String rfcBeneficiario,
             String tipoPago,
             String estatus,
+            String moneda,
+            String monto,
+            String proveedor,
             Pageable pageable) {
 
         Page<PagosArchivo> page;
@@ -165,75 +168,166 @@ public class PagoServiceImpl implements PagoService {
                     rfcBeneficiario,
                     tipoPago,
                     estatus,
+                    moneda,
+                    monto,
+                    proveedor,
                     pageable);
 
         } else {
 
             page = pagosRepo.filtrarPaginadoMultiBu(
-                    BuUtils.splitBus(bu),
+                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
                     codigoProveedor,
                     rfcBeneficiario,
                     tipoPago,
                     estatus,
+                    moneda,
+                    monto,
+                    proveedor,
                     pageable);
 
         }
 
         return page.map(PagoMapper::toDTO);
     }
-        @Override
-        public Page<PagoPendienteDTO> filtrarEnviadosPaginado(
-                String bu,
-                String search,
-                String fechaInicio,
-                String fechaFin,
-                Pageable pageable) {
+    @Override
+    public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
+            String bu,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            String tipoPago,
+            String moneda,
+            String monto,
+            String proveedor,
+            String fechaInicio,
+            String fechaFin,
+            Pageable pageable) {
 
+        String buParaConsulta = bu;
         Page<PagosArchivo> page;
+        List<PagosArchivo> allList;
 
-        if (BuUtils.isAll(bu)) {
+        if (BuUtils.isAll(buParaConsulta)) {
 
             page = pagosRepo.filtrarEnviadosPaginadoAll(
-                        search,
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
+                        moneda,
+                        monto,
+                        proveedor,
                         fechaInicio,
                         fechaFin,
                         pageable);
+
+            allList = pagosRepo.filtrarEnviadosListAll(
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
+                        moneda,
+                        monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin);
 
         } else {
 
             page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
-                        EmpresaUtils.obtenerEmpresasBusqueda(bu),
-                        search,
+                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
+                        moneda,
+                        monto,
+                        proveedor,
                         fechaInicio,
                         fechaFin,
                         pageable);
 
+            allList = pagosRepo.filtrarEnviadosListMultiBu(
+                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                        codigoProveedor,
+                        rfcBeneficiario,
+                        tipoPago,
+                        moneda,
+                        monto,
+                        proveedor,
+                        fechaInicio,
+                        fechaFin);
+
         }
 
-        return page.map(PagoMapper::toDTO);
+        Page<PagoPendienteDTO> dtoPage = page.map(PagoMapper::toDTO);
 
+        // Calcular total y sumatorias por moneda en Java de forma segura
+        long totalPagos = allList.size();
+
+        java.util.Map<String, Double> sumasMap = allList.stream()
+                .filter(p -> p.getMoneda() != null && !p.getMoneda().isBlank())
+                .collect(java.util.stream.Collectors.groupingBy(
+                        PagosArchivo::getMoneda,
+                        java.util.stream.Collectors.summingDouble(p -> {
+                            try {
+                                return p.getMonto() != null ? Double.parseDouble(p.getMonto()) : 0.0;
+                            } catch (Exception e) {
+                                return 0.0;
+                            }
+                        })
+                ));
+
+        List<com.rassini.pagos.dto.SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
+                .map(entry -> new com.rassini.pagos.dto.SumaPorMonedaDTO(entry.getKey(), entry.getValue()))
+                .collect(java.util.stream.Collectors.toList());
+
+        return com.rassini.pagos.dto.PagosEnviadosResponseDTO.builder()
+                .page(dtoPage)
+                .totalPagos(totalPagos)
+                .sumas(sumasList)
+                .build();
     }
     
 
     @Override
     public Page<PagoPendienteDTO> filtrarErroresPaginado(
             String bu,
-            String search,
+            String codigoProveedor,
+            String rfcBeneficiario,
+            String tipoPago,
+            String moneda,
+            String monto,
+            String proveedor,
+            String fechaInicio,
+            String fechaFin,
             Pageable pageable) {
 
+        String buParaConsulta = bu;
         Page<PagosArchivo> page;
 
-        if (BuUtils.isAll(bu)) {
+        if (BuUtils.isAll(buParaConsulta)) {
 
             page = pagosRepo.filtrarErroresPaginadoAll(
-                    search,
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    moneda,
+                    monto,
+                    proveedor,
+                    fechaInicio,
+                    fechaFin,
                     pageable);
 
         } else {
 
             page = pagosRepo.filtrarErroresPaginadoMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
-                    search,
+                    EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                    codigoProveedor,
+                    rfcBeneficiario,
+                    tipoPago,
+                    moneda,
+                    monto,
+                    proveedor,
+                    fechaInicio,
+                    fechaFin,
                     pageable);
 
         }
