@@ -605,6 +605,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
         String empresaPadre =
                 EmpresaUtils.obtenerEmpresaPadre(empresa);
+        log.info("Obteniendo supplier para proveedor: {}, empresa: {}, ultimos8: {}", codigoProveedor, empresaPadre, ultimos8);
 
         List<Supplier> suppliers = supplierRepository
                 .findByCodigoProveedorAndEmpresaAndAccountNumberEndsWith(
