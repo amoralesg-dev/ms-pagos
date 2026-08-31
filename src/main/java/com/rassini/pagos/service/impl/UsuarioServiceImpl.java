@@ -61,11 +61,11 @@ public class UsuarioServiceImpl implements UsuarioService {
         java.util.List<com.rassini.pagos.dto.BuDTO> list = new java.util.ArrayList<>();
         if ("ALL".equalsIgnoreCase(buStr.trim())) {
             list.add(new com.rassini.pagos.dto.BuDTO("ALL", "ALL"));
-            for (String p : com.rassini.pagos.util.EmpresaUtils.obtenerTodasEmpresasPadre()) {
+            for (String p : com.rassini.pagos.util.EmpresaUtils.obtenerTodasEmpresasReales()) {
                 list.add(new com.rassini.pagos.dto.BuDTO(p, p));
             }
         } else {
-            for (String b : com.rassini.pagos.util.BuUtils.splitBus(buStr)) {
+            for (String b : com.rassini.pagos.util.EmpresaUtils.obtenerEmpresasBusqueda(buStr)) {
                 list.add(new com.rassini.pagos.dto.BuDTO(b, b));
             }
         }

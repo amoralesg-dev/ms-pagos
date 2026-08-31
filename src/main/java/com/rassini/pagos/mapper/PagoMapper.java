@@ -32,7 +32,7 @@ public class PagoMapper {
            dto.setTipoPago(entity.getTipoPago().getDealType());  
         }
         dto.setReferenciaManual(entity.getReferenciaManual());
-        dto.setBu(com.rassini.pagos.util.EmpresaUtils.obtenerEmpresaPadreSeguro(entity.getEmpresa()));
+        dto.setBu(entity.getEmpresa());
 
        
 
