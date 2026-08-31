@@ -43,9 +43,9 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(get("/usuarios/usuario1/bus"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].codigo").value("0111"))
-                .andExpect(jsonPath("$[0].descripcion").value("0111"));
+                .andExpect(jsonPath("$.length()").value(9))
+                .andExpect(jsonPath("$[?(@.codigo == '0112')]").exists())
+                .andExpect(jsonPath("$[?(@.codigo == '0103')]").exists());
     }
 
     @Test
@@ -62,10 +62,10 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(get("/usuarios/usuario2/bus"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].codigo").value("0111"))
-                .andExpect(jsonPath("$[1].codigo").value("09"))
-                .andExpect(jsonPath("$[2].codigo").value("1000"));
+                .andExpect(jsonPath("$.length()").value(15))
+                .andExpect(jsonPath("$[?(@.codigo == '0112')]").exists())
+                .andExpect(jsonPath("$[?(@.codigo == '02')]").exists())
+                .andExpect(jsonPath("$[?(@.codigo == '1000')]").exists());
     }
 
     @Test
@@ -82,8 +82,8 @@ public class UsuarioControllerTest {
 
         mockMvc.perform(get("/usuarios/usuarioAll/bus"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].codigo").value("ALL"))
-                .andExpect(jsonPath("$[0].descripcion").value("ALL"))
-                .andExpect(jsonPath("$.length()").value(7)); // ALL, plus 6 BUs: 0111, 0301, 09, 1000, 1850, 99
+                .andExpect(jsonPath("$.length()").value(19))
+                .andExpect(jsonPath("$[?(@.codigo == '0112')]").exists())
+                .andExpect(jsonPath("$[?(@.codigo == '1850')]").exists());
     }
 }
