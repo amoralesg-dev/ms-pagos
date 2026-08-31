@@ -126,6 +126,19 @@ public final class EmpresaUtils {
                  .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene de forma dinamica y ordenada todas las empresas reales (BUs hijas) configuradas
+     * en el mapa de empresas.
+     */
+    public static List<String> obtenerTodasEmpresasReales() {
+        return EMPRESA_PADRE_MAP.keySet()
+                 .stream()
+                 .filter(val -> val != null && !val.isBlank())
+                 .distinct()
+                 .sorted()
+                 .collect(Collectors.toList());
+    }
+
     public static String obtenerEmpresaPadreSeguro(String empresa) {
         if (empresa == null || empresa.isBlank()) {
             return "";
