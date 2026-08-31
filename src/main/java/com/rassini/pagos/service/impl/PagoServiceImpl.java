@@ -108,7 +108,7 @@ public class PagoServiceImpl implements PagoService {
                     .orElseThrow(() -> new BusinessException("Pago no encontrado: " + item.getId()));
 
             if (!BuUtils.isAll(bu)
-            && !EmpresaUtils.obtenerEmpresasBusqueda(bu).contains(pago.getEmpresa())) {
+            && !BuUtils.splitBus(bu).contains(pago.getEmpresa())) {
 
                 throw new BusinessException(
                     "El pago no pertenece a la unidad de negocio especificada");
@@ -176,7 +176,7 @@ public class PagoServiceImpl implements PagoService {
         } else {
 
             page = pagosRepo.filtrarPaginadoMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu),
+                    BuUtils.splitBus(bu),
                     codigoProveedor,
                     rfcBeneficiario,
                     tipoPago,
@@ -233,7 +233,7 @@ public class PagoServiceImpl implements PagoService {
         } else {
 
             page = pagosRepo.filtrarEnviadosPaginadoMultiBu(
-                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                        BuUtils.splitBus(buParaConsulta),
                         codigoProveedor,
                         rfcBeneficiario,
                         tipoPago,
@@ -245,7 +245,7 @@ public class PagoServiceImpl implements PagoService {
                         pageable);
 
             allList = pagosRepo.filtrarEnviadosListMultiBu(
-                        EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                        BuUtils.splitBus(buParaConsulta),
                         codigoProveedor,
                         rfcBeneficiario,
                         tipoPago,
@@ -319,7 +319,7 @@ public class PagoServiceImpl implements PagoService {
         } else {
 
             page = pagosRepo.filtrarErroresPaginadoMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(buParaConsulta),
+                    BuUtils.splitBus(buParaConsulta),
                     codigoProveedor,
                     rfcBeneficiario,
                     tipoPago,
@@ -347,7 +347,7 @@ public class PagoServiceImpl implements PagoService {
         } else {
 
             pendientes = pagosRepo.findPendientesValidacionMultiBu(
-                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
+                    BuUtils.splitBus(bu));
         }
 
         if (pendientes == null || pendientes.isEmpty()) {
@@ -405,7 +405,7 @@ public class PagoServiceImpl implements PagoService {
             } else {
 
                     pendientes = pagosRepo.findPendientesPorEnviarMultiBu(
-                                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
+                                    BuUtils.splitBus(bu));
             }
 
             if (pendientes == null || pendientes.isEmpty()) {
@@ -737,7 +737,7 @@ public class PagoServiceImpl implements PagoService {
             } else {
 
                     pendientes = pagosRepo.findPendientesValidacionMultiBu(
-                                    EmpresaUtils.obtenerEmpresasBusqueda(bu));
+                    BuUtils.splitBus(bu));
             }
 
             if (pendientes == null || pendientes.isEmpty()) {
