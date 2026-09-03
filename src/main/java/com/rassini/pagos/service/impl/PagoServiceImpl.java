@@ -600,7 +600,7 @@ public class PagoServiceImpl implements PagoService {
                             : "";
 
 
-            if(ConstantsSuppliers.BREAKES.equalsIgnoreCase(pago.getEmpresa()) || ConstantsSuppliers.SUSPENSIONES.equalsIgnoreCase(pago.getEmpresa())){
+            if(ConstantsSuppliers.Breakes.equalsIgnoreCase(pago.getEmpresa())){
                 String ruteo = supplier.getRoutingCodeAba();
 
                 if (ruteo == null || ruteo.isBlank()) {
