@@ -29,6 +29,7 @@ import com.rassini.pagos.dto.AnaliticaPendientesTipoPagoDTO;
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualItemDTO;
+import com.rassini.pagos.dto.SumaPorMonedaDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.entity.CatalogoTipoPago;
 import com.rassini.pagos.entity.PagosArchivo;
@@ -188,7 +189,33 @@ public class PagoServiceImpl implements PagoService {
 
         }
 
-        return page.map(PagoMapper::toDTO);
+        return page.map(entity -> {
+            PagoPendienteDTO dto = PagoMapper.toDTO(entity);
+            boolean tieneAba = false;
+            boolean tieneSwift = false;
+            if (entity.getCodigoProveedor() != null && !entity.getCodigoProveedor().isBlank()) {
+                List<Supplier> suppliers = supplierRepo.findByErpIdQad(entity.getCodigoProveedor());
+                tieneAba = suppliers.stream().anyMatch(s -> s.getRoutingCodeAba() != null && !s.getRoutingCodeAba().isBlank());
+                tieneSwift = suppliers.stream().anyMatch(s -> s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank());
+            }
+            dto.setTieneAba(tieneAba);
+            dto.setTieneSwift(tieneSwift);
+            dto.setOpcionesTipoPago(EmpresaUtils.determinarOpcionesTipoPago(tieneAba, tieneSwift));
+
+            // Fallback centralizado: si tipoPagoSeleccionado es null (registro histórico),
+            // calcula el valor usando la misma regla automática del negocio para garantizar
+            // consistencia entre lo mostrado en pantalla y lo generado en el layout.
+            if (dto.getTipoPagoSeleccionado() == null || dto.getTipoPagoSeleccionado().isBlank()) {
+                String tipoEfectivo = "WIRE";
+                if (EmpresaUtils.aplicaTransferenciaAchWire(entity.getEmpresa()) && tieneAba) {
+                    tipoEfectivo = "ACH";
+                }
+                dto.setTipoPagoSeleccionado(tipoEfectivo);
+            }
+            return dto;
+        });
+
+
     }
     @Override
     public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
@@ -275,9 +302,9 @@ public class PagoServiceImpl implements PagoService {
                         })
                 ));
 
-        List<com.rassini.pagos.dto.SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
+        List<SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
                 .map(entry -> new com.rassini.pagos.dto.SumaPorMonedaDTO(entry.getKey(), entry.getValue()))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
         return com.rassini.pagos.dto.PagosEnviadosResponseDTO.builder()
                 .page(dtoPage)
@@ -600,25 +627,47 @@ public class PagoServiceImpl implements PagoService {
                             : "";
 
 
-            if(ConstantsSuppliers.Breakes.equalsIgnoreCase(pago.getEmpresa())){
-                String ruteo = supplier.getRoutingCodeAba();
-
-                if (ruteo == null || ruteo.isBlank()) {
-                        ruteo = supplier.getRoutingCodeSwift();
-                }else{
-                        log.info("ABA DETECTADO. Fecha envío original: {}", pago.getFechaEnvio());
-                        log.info("ABA DETECTADO. Fecha valor original: {}", pago.getFechaValor());
-
-                        campos[5] = sumarUnDia(pago.getFechaEnvio());
-                        campos[6] = sumarUnDia(pago.getFechaValor());
-
-                        log.info("ABA DETECTADO. Fecha envío +1: {}", campos[5]);
-                        log.info("ABA DETECTADO. Fecha valor +1: {}", campos[6]);
+            String tipoEfectivo = pago.getTipoPagoSeleccionado();
+            if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
+                // Fallback a regla automática histórica centralizada
+                if (EmpresaUtils.aplicaTransferenciaAchWire(pago.getEmpresa())
+                        && supplier.getRoutingCodeAba() != null
+                        && !supplier.getRoutingCodeAba().isBlank()) {
+                    tipoEfectivo = "ACH";
+                } else {
+                    tipoEfectivo = "WIRE";
                 }
-                campos[22] = nvl(ruteo);
-            }else{
-                String ruteo = supplier.getRoutingCodeSwift();
-                campos[22] = nvl(ruteo);
+            }
+
+            tipoEfectivo = tipoEfectivo.trim().toUpperCase(java.util.Locale.ROOT);
+
+            if ("ACH".equals(tipoEfectivo)) {
+                String aba = supplier.getRoutingCodeAba();
+                if (aba == null || aba.isBlank()) {
+                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code ABA requerido para pagos ACH");
+                }
+                campos[22] = nvl(aba);
+                log.info("ACH/ABA DETECTADO. Fecha envío original: {}", pago.getFechaEnvio());
+                log.info("ACH/ABA DETECTADO. Fecha valor original: {}", pago.getFechaValor());
+
+                campos[5] = sumarUnDia(pago.getFechaEnvio());
+                campos[6] = sumarUnDia(pago.getFechaValor());
+
+                log.info("ACH/ABA DETECTADO. Fecha envío +1: {}", campos[5]);
+                log.info("ACH/ABA DETECTADO. Fecha valor +1: {}", campos[6]);
+            } else if ("WIRE".equals(tipoEfectivo)) {
+                String swift = supplier.getRoutingCodeSwift();
+                if (swift == null || swift.isBlank()) {
+                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code SWIFT requerido para pagos Wire");
+                }
+                campos[22] = nvl(swift);
+                campos[5] = nvl(pago.getFechaEnvio());
+                campos[6] = nvl(pago.getFechaValor());
+            } else {
+                throw new BusinessException("Tipo de pago seleccionado inválido: " + tipoEfectivo
+                        + ". Valores permitidos: ACH, WIRE");
             }
 
             campos[23] = nvl(supplier.getBankCountry());
@@ -722,6 +771,106 @@ public class PagoServiceImpl implements PagoService {
                             referenciasPorId.get(pago.getId())));
 
             pagosRepo.saveAll(pagos);
+    }
+
+    @Override
+    @Transactional
+    public void actualizarTipoPagoSeleccionado(Long id, String tipoPagoSeleccionado) {
+            if (id == null) {
+                throw new BusinessException("El id del pago es obligatorio");
+            }
+            validarTipoPagoSeleccionadoValor(tipoPagoSeleccionado);
+
+            PagosArchivo pago = pagosRepo.findById(id)
+                            .orElseThrow(() -> new BusinessException(
+                                            "No se encontró el pago con id: " + id));
+
+            if (!ConstantsSuppliers.PENDIENTE.equalsIgnoreCase(pago.getEstatus())) {
+                throw new BusinessException("Solo se pueden modificar pagos en estatus PENDIENTE. El pago con id "
+                        + id + " se encuentra en estatus: " + pago.getEstatus());
+            }
+
+            if (!EmpresaUtils.aplicaTransferenciaAchWire(pago.getEmpresa())) {
+                throw new BusinessException("La empresa " + pago.getEmpresa()
+                        + " no participa en la funcionalidad de selección ACH/WIRE");
+            }
+
+            pago.setTipoPagoSeleccionado(tipoPagoSeleccionado.trim().toUpperCase(java.util.Locale.ROOT));
+            pagosRepo.save(pago);
+    }
+
+    @Override
+    @Transactional
+    public void actualizarTiposPagoSeleccionados(
+                    List<com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO> items) {
+            if (items == null || items.isEmpty()) {
+                throw new BusinessException("La lista de pagos a actualizar no puede ser nula ni vacía");
+            }
+
+            // 1. Validar que ningún item sea null, ningún id sea null, valor ACH/WIRE válido y detectar duplicados
+            java.util.Set<Long> idsUnicos = new java.util.HashSet<>();
+            for (com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO item : items) {
+                if (item == null) {
+                    throw new BusinessException("El elemento de pago a actualizar no puede ser nulo");
+                }
+                if (item.getId() == null) {
+                    throw new BusinessException("El id del pago es obligatorio en la actualización masiva");
+                }
+                if (!idsUnicos.add(item.getId())) {
+                    throw new BusinessException("Se detectó un ID duplicado en el request de actualización: " + item.getId());
+                }
+                validarTipoPagoSeleccionadoValor(item.getTipoPagoSeleccionado());
+            }
+
+            List<Long> ids = items.stream()
+                            .map(com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO::getId)
+                            .toList();
+
+            // 2. Consultar entidades y comparar IDs solicitados vs encontrados
+            List<PagosArchivo> pagos = pagosRepo.findAllById(ids);
+            if (pagos.size() != ids.size()) {
+                java.util.Set<Long> encontradosIds = pagos.stream().map(PagosArchivo::getId).collect(Collectors.toSet());
+                List<Long> faltantes = ids.stream().filter(id -> !encontradosIds.contains(id)).toList();
+                throw new BusinessException("No se encontraron los siguientes pagos para actualizar: " + faltantes);
+            }
+
+            // 3. Validar que todos los pagos encontrados estén en estatus PENDIENTE y pertenezcan a empresas autorizadas
+            for (PagosArchivo pago : pagos) {
+                if (!ConstantsSuppliers.PENDIENTE.equalsIgnoreCase(pago.getEstatus())) {
+                    throw new BusinessException("Solo se pueden modificar pagos en estatus PENDIENTE. El pago con id "
+                            + pago.getId() + " se encuentra en estatus: " + pago.getEstatus());
+                }
+                if (!EmpresaUtils.aplicaTransferenciaAchWire(pago.getEmpresa())) {
+                    throw new BusinessException("La empresa " + pago.getEmpresa()
+                            + " del pago " + pago.getId() + " no participa en la funcionalidad de selección ACH/WIRE");
+                }
+            }
+
+            // 4. Modificar entidades y persistir atómicamente dentro de la transacción
+            Map<Long, String> tiposPorId = items.stream()
+                            .collect(Collectors.toMap(
+                                            com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO::getId,
+                                            item -> item.getTipoPagoSeleccionado().trim().toUpperCase(java.util.Locale.ROOT)));
+
+            pagos.forEach(pago -> {
+                String nuevoTipo = tiposPorId.get(pago.getId());
+                if (nuevoTipo != null) {
+                    pago.setTipoPagoSeleccionado(nuevoTipo);
+                }
+            });
+
+            pagosRepo.saveAll(pagos);
+    }
+
+    private void validarTipoPagoSeleccionadoValor(String tipoPagoSeleccionado) {
+            if (tipoPagoSeleccionado == null || tipoPagoSeleccionado.isBlank()) {
+                throw new BusinessException("El tipo de pago seleccionado es obligatorio");
+            }
+            String valor = tipoPagoSeleccionado.trim().toUpperCase(java.util.Locale.ROOT);
+            if (!"ACH".equals(valor) && !"WIRE".equals(valor)) {
+                throw new BusinessException("Tipo de pago seleccionado inválido: " + tipoPagoSeleccionado
+                        + ". Valores permitidos: ACH, WIRE");
+            }
     }
 
     @Override

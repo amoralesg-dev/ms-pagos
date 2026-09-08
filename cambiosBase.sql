@@ -7,4 +7,9 @@ ADD COLUMN referencia_manual VARCHAR(255) NULL;
 ALTER TABLE pagos_db.pagos_archivo MODIFY COLUMN informacion_adicional varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL;
 
 
+
 ALTER TABLE pagos_db.pagos_archivo MODIFY COLUMN referencia_manual varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL;
+
+# Se agrega campo para tipo de pago seleccionado (ACH / WIRE)
+ALTER TABLE pagos_archivo
+ADD COLUMN tipo_pago_seleccionado VARCHAR(20) NULL;
