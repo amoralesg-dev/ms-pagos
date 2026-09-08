@@ -33,6 +33,7 @@ import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
+import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
 import com.rassini.pagos.util.TxtParser;
 
@@ -684,21 +685,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
 
-                    // Validar si existe duplicado (en memoria para el archivo actual y luego en BD)
-                    String uniqueKey = pago.getNombreArchivo() + "|" +
-                                       pago.getMonto() + "|" +
-                                       pago.getCodigoProveedor() + "|" +
-                                       pago.getFechaEnvio();
+                    // Validar si existe duplicado por referencia (en memoria para el archivo actual y luego en BD)
+                    String refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
 
-                    boolean existeDuplicado = registrosProcesados.contains(uniqueKey);
+                    boolean existeDuplicado = false;
+                    if (!refNormalizada.isEmpty()) {
+                        existeDuplicado = registrosProcesados.contains(refNormalizada);
 
-                    if (!existeDuplicado) {
-                        existeDuplicado = repository.existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
-                            pago.getNombreArchivo(),
-                            pago.getMonto(),
-                            pago.getCodigoProveedor(),
-                            pago.getFechaEnvio()
-                        );
+                        if (!existeDuplicado) {
+                            existeDuplicado = repository.existsByReferenciaTrim(refNormalizada);
+                        }
                     }
 
                     if (existeDuplicado) {
@@ -714,7 +710,9 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                         asignarReferenciaProveedor(pago);
 
-                        registrosProcesados.add(uniqueKey);
+                        if (!refNormalizada.isEmpty()) {
+                            registrosProcesados.add(refNormalizada);
+                        }
 
                       }
 
@@ -724,6 +722,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     } else {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
+
+                        // Cálculo inicial automático del tipo de transferencia para layout (ACH vs WIRE)
+                        if (EmpresaUtils.aplicaTransferenciaAchWire(pago.getEmpresa())
+                                && supplier != null
+                                && supplier.getRoutingCodeAba() != null
+                                && !supplier.getRoutingCodeAba().isBlank()) {
+                            pago.setTipoPagoSeleccionado("ACH");
+                        } else {
+                            pago.setTipoPagoSeleccionado("WIRE");
+                        }
                     }
 
                     batch.add(pago);

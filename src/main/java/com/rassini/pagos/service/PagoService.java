@@ -47,6 +47,10 @@ public interface PagoService {
 
     void actualizarReferenciasManuales(List<ReferenciaManualItemDTO> items);
 
+    void actualizarTipoPagoSeleccionado(Long id, String tipoPagoSeleccionado);
+
+    void actualizarTiposPagoSeleccionados(List<com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO> items);
+
     List<AnaliticaPendientesArchivoDTO> obtenerAnaliticaPendientes(String bu);
 
 }

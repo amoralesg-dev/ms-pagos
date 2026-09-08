@@ -2,6 +2,7 @@ package com.rassini.pagos.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -145,5 +146,50 @@ public final class EmpresaUtils {
         }
         String padre = EMPRESA_PADRE_MAP.get(empresa.trim());
         return padre != null ? padre : empresa.trim();
+    }
+
+    /**
+     * Plantas habilitadas por negocio para la funcionalidad ACH/WIRE.
+     * Centralizado en un único Set para que agregar nuevas plantas en el futuro sea trivial.
+     */
+    private static final Set<String> EMPRESAS_ACH_WIRE = Set.of(
+            "1850",
+            "09"
+    );
+
+    /**
+     * Determina de forma centralizada si una empresa (o su empresa padre)
+     * participa en la funcionalidad de selección ACH/WIRE.
+     */
+    public static boolean aplicaTransferenciaAchWire(String empresa) {
+        if (empresa == null || empresa.isBlank()) {
+            return false;
+        }
+        String limpia = empresa.trim();
+        if (EMPRESAS_ACH_WIRE.contains(limpia)) {
+            return true;
+        }
+        String padre = EMPRESA_PADRE_MAP.get(limpia);
+        return padre != null && EMPRESAS_ACH_WIRE.contains(padre);
+    }
+
+    /**
+     * Determina de forma centralizada las opciones disponibles para el selector
+     * de tipo de transferencia según las capacidades del proveedor:
+     * - Caso 1 (ABA + SWIFT): ["ACH", "WIRE"]
+     * - Caso 2 (ABA sin SWIFT): ["ACH"]
+     * - Caso 3 (sin ABA, con SWIFT): ["WIRE"]
+     * - Caso 4 (sin ABA ni SWIFT): []
+     */
+    public static List<String> determinarOpcionesTipoPago(boolean tieneAba, boolean tieneSwift) {
+        if (tieneAba && tieneSwift) {
+            return List.of("ACH", "WIRE");
+        } else if (tieneAba) {
+            return List.of("ACH");
+        } else if (tieneSwift) {
+            return List.of("WIRE");
+        } else {
+            return List.of();
+        }
     }
 }

@@ -38,4 +38,5 @@ public class PagoDTO {
     private String duplicado;
 
     private String dealType; // clasificación
+    private String tipoPagoSeleccionado;
 }
