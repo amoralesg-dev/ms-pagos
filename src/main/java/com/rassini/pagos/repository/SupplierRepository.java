@@ -68,7 +68,5 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
 
 
-    Object findByErpIdQadAndBusinessUnitCode(String codigoProveedor, String empresaPadre);
-
-
+    List<Supplier> findByErpIdQadAndBusinessUnitCode(String codigoProveedor, String empresaPadre);
 }

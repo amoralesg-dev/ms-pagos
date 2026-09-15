@@ -581,12 +581,12 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         String empresaPadre =
                 EmpresaUtils.obtenerEmpresaPadre(empresa);
 
-        Supplier supplier = (Supplier) supplierRepository
+        List<Supplier> suppliers = supplierRepository
                 .findByErpIdQadAndBusinessUnitCode(
                         codigoProveedor,
                         empresaPadre);
 
-        if (supplier == null) {
+        if (suppliers == null || suppliers.isEmpty()) {
             throw new BusinessExceptionCode(
                     ErrorCodes.ERR045,
                     String.format(
@@ -595,7 +595,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                             empresaPadre));
         }
 
-        return supplier;
+        if (suppliers.size() > 1) {
+            throw new BusinessExceptionCode(
+                    ErrorCodes.ERR031,
+                    String.format(
+                            "Existe más de un supplier para proveedor %s en empresa %s. No es posible determinar un Supplier único sin cuenta beneficiario.",
+                            codigoProveedor,
+                            empresaPadre));
+        }
+
+        return suppliers.get(0);
     }
 
     @Override
@@ -723,15 +732,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
 
-                        // Cálculo inicial automático del tipo de transferencia para layout (ACH vs WIRE)
-                        if (EmpresaUtils.aplicaTransferenciaAchWire(pago.getEmpresa())
-                                && supplier != null
-                                && supplier.getRoutingCodeAba() != null
-                                && !supplier.getRoutingCodeAba().isBlank()) {
-                            pago.setTipoPagoSeleccionado("ACH");
-                        } else {
-                            pago.setTipoPagoSeleccionado("WIRE");
-                        }
+                        // Cálculo inicial automático del método de transferencia para layout según moneda y país
+                        String paisBeneficiario = supplier != null ? supplier.getCountryCode() : null;
+                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
+                        pago.setTipoPagoSeleccionado(tipoCalculado);
                     }
 
                     batch.add(pago);
