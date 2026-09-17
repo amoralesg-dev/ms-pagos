@@ -199,7 +199,7 @@ public final class EmpresaUtils {
      * 1. Moneda USD + país US                       -> ACH
      * 2. Moneda USD + país MX                       -> SPID
      * 3. Moneda MXN + país MX                       -> SPEI
-     * 4. Moneda USD + país distinto de US y MX      -> WIRE
+     * 4. Moneda MXN + país distinto de MX      -> WIRE
      * - Por compatibilidad / default: WIRE
      *
      * ABA y SWIFT NO participan en la clasificación.
@@ -217,7 +217,7 @@ public final class EmpresaUtils {
         if ("MXN".equals(m) && "MX".equals(p)) {
             return TIPO_PAGO_SPEI;
         }
-        if ("USD".equals(m)) {
+        if ("MXN".equals(m) && !"MX".equals(p)) {
             return TIPO_PAGO_WIRE;
         }
         return TIPO_PAGO_WIRE;
