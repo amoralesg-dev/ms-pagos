@@ -25,6 +25,8 @@ import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.service.impl.PagoServiceImpl;
+import com.rassini.pagos.util.EmpresaUtils;
+import com.rassini.pagos.util.ResolucionTipoPago;
 
 @ExtendWith(MockitoExtension.class)
 public class TipoPagoYDuplicadosTest {
@@ -427,8 +429,8 @@ public class TipoPagoYDuplicadosTest {
         assertEquals("SPID",
                 com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "MX"));
 
-        // USD + otro país → SPID
-        assertEquals("SPID",
+        // USD + otro país → WIRE (Regla oficial 4)
+        assertEquals("WIRE",
                 com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "CA"));
 
         // Caso default → WIRE
@@ -630,11 +632,11 @@ public class TipoPagoYDuplicadosTest {
     }
 
     @Test
-    @DisplayName("CP31 - Regla Negocio 4: USD + pais <> MX -> SPID")
+    @DisplayName("CP31 - Regla Negocio 4: USD + pais <> MX y <> US -> WIRE")
     public void testCP31_ReglaUsdPaisDistintoMxRetornaSpid() {
-        assertEquals("SPID", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "CA"));
-        assertEquals("SPID", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "DE"));
-        assertEquals("SPID", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "GB"));
+        assertEquals("WIRE", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "CA"));
+        assertEquals("WIRE", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "DE"));
+        assertEquals("WIRE", com.rassini.pagos.util.EmpresaUtils.calcularTipoPagoAutomatico("USD", "GB"));
     }
 
     @Test
@@ -687,7 +689,7 @@ public class TipoPagoYDuplicadosTest {
 
         Exception ex = assertThrows(Exception.class, () -> invokeGenerarLineaLayout(pago, supplier, "archivo.txt"));
         assertTrue(ex.getCause() instanceof BusinessException);
-        assertTrue(ex.getCause().getMessage().contains("no cuenta con Routing Code SWIFT requerido para pagos SPID"));
+        assertTrue(ex.getCause().getMessage().contains("no cuenta con Routing Code SWIFT requerido para SPID."));
     }
 
     @Test
@@ -703,15 +705,14 @@ public class TipoPagoYDuplicadosTest {
         pagoService.actualizarTipoPagoSeleccionado(100L, "spei");
         assertEquals("SPEI", pago.getTipoPagoSeleccionado());
 
-        pagoService.actualizarTipoPagoSeleccionado(100L, "spid");
+        pagoService.actualizarTipoPagoSeleccionado(100L, "SPID");
         assertEquals("SPID", pago.getTipoPagoSeleccionado());
-
         verify(pagosRepo, times(2)).save(pago);
     }
 
     @Test
-    @DisplayName("CP35 - Guardado masivo soporta mezcla de ACH, WIRE, SPID y SPEI")
-    public void testCP35_GuardadoMasivoNuevosTipos() {
+    @DisplayName("CP35 - Guardado masivo soporta SPID y SPEI")
+    public void testCP35_GuardadoMasivoSpidYSpei() {
         PagosArchivo p1 = new PagosArchivo();
         p1.setId(1L);
         p1.setEmpresa("1850");
@@ -750,24 +751,19 @@ public class TipoPagoYDuplicadosTest {
     }
 
     @Test
-    @DisplayName("CP36 - Opciones dinámicas según moneda, país y códigos disponibles")
+    @DisplayName("CP36 - Opciones según datos bancarios (capacidad operativa) sin alterar tipo sugerido")
     public void testCP36_OpcionesDinamicasMonedaPais() {
-        // USD + US con ABA y SWIFT: sugiere ACH (con ABA) y WIRE/SPID (con SWIFT)
+        // Caso B: USD + US + ABA + SWIFT -> [ACH, WIRE, SPID]
         List<String> opc1 = com.rassini.pagos.util.EmpresaUtils.determinarOpcionesTipoPago("USD", "US", true, true);
-        assertTrue(opc1.contains("ACH"));
-        assertTrue(opc1.contains("WIRE"));
-        assertTrue(opc1.contains("SPID"));
+        assertEquals(List.of("ACH", "WIRE", "SPID"), opc1);
 
-        // MXN + MX con SWIFT: única opción válida es SPEI (no WIRE)
+        // Caso F: MXN + MX + SWIFT -> [SPEI]
         List<String> opc2 = com.rassini.pagos.util.EmpresaUtils.determinarOpcionesTipoPago("MXN", "MX", false, true);
-        assertEquals(1, opc2.size());
-        assertEquals("SPEI", opc2.get(0));
-        assertFalse(opc2.contains("WIRE"));
-        assertFalse(opc2.contains("ACH"));
+        assertEquals(List.of("SPEI"), opc2);
 
-        // Sin ABA ni SWIFT: lista vacía
-        List<String> opc3 = com.rassini.pagos.util.EmpresaUtils.determinarOpcionesTipoPago("USD", "US", false, false);
-        assertTrue(opc3.isEmpty());
+        // USD + CA + SWIFT -> [WIRE, SPID]
+        List<String> opc3 = com.rassini.pagos.util.EmpresaUtils.determinarOpcionesTipoPago("USD", "CA", false, true);
+        assertEquals(List.of("WIRE", "SPID"), opc3);
     }
 
     @Test
@@ -974,7 +970,7 @@ public class TipoPagoYDuplicadosTest {
         com.rassini.pagos.dto.ValidacionEnvioDTO validacion = pagoService.validarPagosPendientes("ALL");
         assertFalse(validacion.isPermitido(), "No debe permitir el envío si hay pagos con tipo incompatible");
         assertFalse(validacion.getErrores().isEmpty());
-        assertTrue(validacion.getErrores().get(0).contains("no compatible con las opciones válidas"));
+        assertTrue(validacion.getErrores().get(0).contains("pero por regla de negocio la única opción válida es SPEI"));
     }
 
     @Test
@@ -1000,7 +996,7 @@ public class TipoPagoYDuplicadosTest {
     }
 
     @Test
-    @DisplayName("CP45 - Proveedor sin ABA ni SWIFT (opciones vacías): Bloquear envío con mensaje funcional")
+    @DisplayName("CP45 - Proveedor sin ABA ni SWIFT: Bloquear envío con reporte de datos bancarios")
     public void testCP45_ProveedorSinAbaNiSwiftBloqueaEnvio() {
         PagosArchivo pago = new PagosArchivo();
         pago.setId(701L);
@@ -1012,6 +1008,7 @@ public class TipoPagoYDuplicadosTest {
         pago.setTipoPago(new com.rassini.pagos.entity.CatalogoTipoPago());
 
         Supplier sSinRouting = createValidSupplier();
+        sSinRouting.setCountryCode("US");
         sSinRouting.setRoutingCodeAba(null);
         sSinRouting.setRoutingCodeSwift(null);
 
@@ -1021,12 +1018,12 @@ public class TipoPagoYDuplicadosTest {
 
         com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("ALL");
         assertFalse(res.isPermitido());
-        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("no cuenta con opciones de transferencia válidas")));
+        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("Proveedor PROV_NO_ROUTING no cuenta con Routing Code ABA requerido para ACH.")));
     }
 
     @Test
-    @DisplayName("CP46 - Tipo persistido null: Bloquear envío indicando selección requerida")
-    public void testCP46_TipoPersistidoNullBloqueaEnvio() {
+    @DisplayName("CP46 - Tipo persistido null: Asigna tipo oficial automáticamente y valida datos bancarios")
+    public void testCP46_TipoPersistidoNullValidaConTipoOficial() {
         PagosArchivo pago = new PagosArchivo();
         pago.setId(702L);
         pago.setNombreArchivo("TEST_NULL_TIPO.txt");
@@ -1046,13 +1043,13 @@ public class TipoPagoYDuplicadosTest {
         when(fileLoaderService.obtenerSupplierPadrePorCuenta("PROV_OK", "0111", "33445566")).thenReturn(sConRouting);
 
         com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("ALL");
-        assertFalse(res.isPermitido());
-        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("no tiene un tipo de transferencia seleccionado")));
+        assertTrue(res.isPermitido());
+        assertTrue(res.getErrores().isEmpty());
     }
 
     @Test
-    @DisplayName("CP47 - Tipo persistido vacío: Bloquear envío indicando selección requerida")
-    public void testCP47_TipoPersistidoVacioBloqueaEnvio() {
+    @DisplayName("CP47 - Tipo persistido vacío: Asigna tipo oficial automáticamente y valida datos bancarios")
+    public void testCP47_TipoPersistidoVacioValidaConTipoOficial() {
         PagosArchivo pago = new PagosArchivo();
         pago.setId(703L);
         pago.setNombreArchivo("TEST_BLANK_TIPO.txt");
@@ -1072,8 +1069,8 @@ public class TipoPagoYDuplicadosTest {
         when(fileLoaderService.obtenerSupplierPadrePorCuenta("PROV_OK", "0111", "33445566")).thenReturn(sConRouting);
 
         com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("ALL");
-        assertFalse(res.isPermitido());
-        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("no tiene un tipo de transferencia seleccionado")));
+        assertTrue(res.isPermitido());
+        assertTrue(res.getErrores().isEmpty());
     }
 
     @Test
@@ -1099,7 +1096,7 @@ public class TipoPagoYDuplicadosTest {
 
         com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("ALL");
         assertFalse(res.isPermitido());
-        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("no compatible con las opciones válidas")));
+        assertTrue(res.getErrores().stream().anyMatch(e -> e.contains("tiene un tipo de pago no permitido: INEXISTENTE")));
     }
 
     @Test
@@ -1126,6 +1123,129 @@ public class TipoPagoYDuplicadosTest {
         com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("ALL");
         assertTrue(res.isPermitido());
         assertTrue(res.getErrores().isEmpty());
+    }
+
+    @Test
+    @DisplayName("CP50 - Matriz de Casos A-F: Dos conceptos separados (Tipo Sugerido vs Opciones Disponibles)")
+    public void testCP50_MatrizResolucionCentralizadaYNormalizacion() {
+        // CASO A: USD + US + ABA (SWIFT=false)
+        ResolucionTipoPago rA = EmpresaUtils.resolverTipoPago("USD", "US", true, false, null);
+        assertEquals("ACH", rA.getTipoSugerido());
+        assertEquals(List.of("ACH"), rA.getOpcionesValidas());
+        assertTrue(rA.isValida());
+
+        // CASO B: USD + US + ABA + SWIFT
+        ResolucionTipoPago rB = EmpresaUtils.resolverTipoPago("USD", "US", true, true, null);
+        assertEquals("ACH", rB.getTipoSugerido());
+        assertEquals(List.of("ACH", "WIRE", "SPID"), rB.getOpcionesValidas());
+        assertTrue(rB.isValida());
+
+        // CASO C: USD + US + SWIFT (ABA=false)
+        ResolucionTipoPago rC = EmpresaUtils.resolverTipoPago("USD", "US", false, true, null);
+        assertEquals("ACH", rC.getTipoSugerido());
+        assertEquals(List.of("WIRE", "SPID"), rC.getOpcionesValidas());
+        assertTrue(rC.isFaltaAba());
+        assertEquals("El tipo sugerido ACH requiere Routing Code ABA.", rC.getAdvertencia());
+
+        // CASO D: USD + MX + SWIFT (ABA=false)
+        ResolucionTipoPago rD = EmpresaUtils.resolverTipoPago("USD", "MX", false, true, null);
+        assertEquals("SPID", rD.getTipoSugerido());
+        assertEquals(List.of("SPID", "WIRE"), rD.getOpcionesValidas());
+        assertTrue(rD.isValida());
+
+        // CASO E: USD + MX + ABA (SWIFT=false)
+        ResolucionTipoPago rE = EmpresaUtils.resolverTipoPago("USD", "MX", true, false, null);
+        assertEquals("SPID", rE.getTipoSugerido());
+        assertEquals(List.of("ACH"), rE.getOpcionesValidas());
+        assertTrue(rE.isFaltaSwift());
+        assertEquals("El tipo sugerido SPID requiere Routing Code SWIFT.", rE.getAdvertencia());
+
+        // CASO F: MXN + MX + SWIFT
+        ResolucionTipoPago rF = EmpresaUtils.resolverTipoPago("MXN", "MX", false, true, null);
+        assertEquals("SPEI", rF.getTipoSugerido());
+        assertEquals(List.of("SPEI"), rF.getOpcionesValidas());
+        assertTrue(rF.isValida());
+    }
+
+    @Test
+    @DisplayName("CP51 - Casos reales Grupo A (USD + US, sin ABA, con SWIFT): Sugerido ACH, Opciones [WIRE, SPID]")
+    public void testCP51_CasosRealesGrupoA_IncompatiblesConWireSpid() {
+        String[] proveedoresGrupoA = {
+            "3537", "18500030", "18500325", "18500350", "0150",
+            "18500404", "60000725", "10001819", "18500053", "18500024"
+        };
+
+        for (String cp : proveedoresGrupoA) {
+            boolean tieneAba = false;
+            boolean tieneSwift = true;
+            String tipoPersistido = "ACH";
+
+            ResolucionTipoPago res = EmpresaUtils.resolverTipoPago(
+                    "USD", "US", tieneAba, tieneSwift, tipoPersistido
+            );
+
+            // Regla oficial: tipo sugerido ACH
+            assertEquals("ACH", res.getTipoSugerido(), "Debe mantener tipo sugerido oficial ACH para: " + cp);
+            // Capacidad operativa por SWIFT: opciones WIRE y SPID
+            assertEquals(List.of("WIRE", "SPID"), res.getOpcionesValidas(), "Debe habilitar opciones WIRE y SPID para: " + cp);
+            // Reporta falta de ABA para el método ACH sugerido
+            assertTrue(res.isFaltaAba(), "Debe reportar falta de ABA para: " + cp);
+            assertFalse(res.isValida(), "No es técnicamente válida para layout sin ABA: " + cp);
+            assertTrue(res.getAdvertencia().contains("requiere Routing Code ABA"));
+        }
+    }
+
+    @Test
+    @DisplayName("CP52 - Casos reales Grupo B (USD + MX, con ABA, sin SWIFT): Sugerido SPID, Opciones [ACH]")
+    public void testCP52_CasosRealesGrupoB_IncompatiblesConAch() {
+        String[] proveedoresGrupoB = { "18500179", "18500420", "18500416" };
+
+        for (String cp : proveedoresGrupoB) {
+            boolean tieneAba = true;
+            boolean tieneSwift = false;
+            String tipoPersistido = "SPID";
+
+            ResolucionTipoPago res = EmpresaUtils.resolverTipoPago(
+                    "USD", "MX", tieneAba, tieneSwift, tipoPersistido
+            );
+
+            // Regla oficial: tipo sugerido SPID
+            assertEquals("SPID", res.getTipoSugerido(), "Debe mantener tipo sugerido oficial SPID para: " + cp);
+            // Capacidad operativa por ABA: opción ACH
+            assertEquals(List.of("ACH"), res.getOpcionesValidas(), "Debe habilitar opción ACH para: " + cp);
+            // Reporta falta de SWIFT para el método SPID sugerido
+            assertTrue(res.isFaltaSwift(), "Debe reportar falta de SWIFT para: " + cp);
+            assertFalse(res.isValida(), "No es técnicamente válida para layout sin SWIFT: " + cp);
+            assertTrue(res.getAdvertencia().contains("requiere Routing Code SWIFT"));
+        }
+    }
+
+    @Test
+    @DisplayName("CP53 - Proveedor 60000725 en BU 1850: Clasificación oficial ACH y reporte de falta de ABA")
+    public void testCP53_Proveedor60000725_AislamientoBu1850() {
+        PagosArchivo pago = new PagosArchivo();
+        pago.setId(2073L);
+        pago.setEmpresa("1850");
+        pago.setCodigoProveedor("60000725");
+        pago.setCuentaBeneficiario("0020064397400974");
+        pago.setMoneda("USD");
+        pago.setTipoPagoSeleccionado("ACH");
+        pago.setTipoPago(new com.rassini.pagos.entity.CatalogoTipoPago());
+
+        Supplier s1850 = createValidSupplier();
+        s1850.setErpIdQad("60000725");
+        s1850.setBusinessUnitCode("1850");
+        s1850.setCountryCode("US");
+        s1850.setRoutingCodeAba(null); // En BU 1850 no tiene ABA
+        s1850.setRoutingCodeSwift("BNPAUS3N"); // Tiene SWIFT BNP Paribas
+
+        when(pagosRepo.findPendientesValidacionMultiBu(anyList())).thenReturn(List.of(pago));
+        when(fileLoaderService.obtenerUltimos8DigitosCuenta("0020064397400974")).thenReturn("400974");
+        when(fileLoaderService.obtenerSupplierPadrePorCuenta("60000725", "1850", "400974")).thenReturn(s1850);
+
+        com.rassini.pagos.dto.ValidacionEnvioDTO res = pagoService.validarPagosPendientes("1850");
+        assertFalse(res.isPermitido(), "Debe bloquear el envío porque ACH requiere ABA");
+        assertTrue(res.getErrores().get(0).contains("Proveedor 60000725 no cuenta con Routing Code ABA requerido para ACH."));
     }
 }
 

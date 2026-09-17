@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import com.rassini.pagos.exception.BusinessException;
+import org.apache.logging.log4j.Logger;
 
 public final class EmpresaUtils {
 
@@ -148,14 +149,7 @@ public final class EmpresaUtils {
         return padre != null ? padre : empresa.trim();
     }
 
-    /**
-     * Plantas habilitadas por negocio para la funcionalidad ACH/WIRE.
-     * Centralizado en un único Set para que agregar nuevas plantas en el futuro sea trivial.
-     */
-    private static final Set<String> EMPRESAS_ACH_WIRE = Set.of(
-            "1850",
-            "09"
-    );
+    
 
     /**
      * Determina de forma centralizada si una empresa (o su empresa padre)
@@ -185,12 +179,30 @@ public final class EmpresaUtils {
     );
 
     /**
-     * Calcula automáticamente el tipo de pago según las reglas de negocio confirmadas:
-     * - USD + US              -> ACH
-     * - MXN + MX              -> SPEI
-     * - USD + MX              -> SPID
-     * - USD + país <> MX      -> SPID (cubre país distinto de MX cuando no es US para USD)
-     * - Por compatibilidad/default: WIRE
+     * Normaliza un tipo de pago a su valor canónico o null si no es permitido.
+     */
+    public static String normalizarTipoPago(String tipo) {
+        if (tipo == null || tipo.isBlank()) {
+            return null;
+        }
+        String trim = tipo.trim();
+        for (String perm : TIPOS_PAGO_SELECCIONADOS_PERMITIDOS) {
+            if (perm.equalsIgnoreCase(trim)) {
+                return perm;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calcula automáticamente el tipo de pago según las reglas de negocio oficiales:
+     * 1. Moneda USD + país US                       -> ACH
+     * 2. Moneda USD + país MX                       -> SPID
+     * 3. Moneda MXN + país MX                       -> SPEI
+     * 4. Moneda MXN + país distinto de MX      -> WIRE
+     * - Por compatibilidad / default: WIRE
+     *
+     * ABA y SWIFT NO participan en la clasificación.
      */
     public static String calcularTipoPagoAutomatico(String moneda, String pais) {
         String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
@@ -199,70 +211,76 @@ public final class EmpresaUtils {
         if ("USD".equals(m) && "US".equals(p)) {
             return TIPO_PAGO_ACH;
         }
-        if ("MXN".equals(m) && "MX".equals(p)) {
-            return TIPO_PAGO_SPEI;
-        }
         if ("USD".equals(m) && "MX".equals(p)) {
             return TIPO_PAGO_SPID;
         }
-        if ("USD".equals(m) && !"MX".equals(p)) {
-            return TIPO_PAGO_SPID;
+        if ("MXN".equals(m) && "MX".equals(p)) {
+            return TIPO_PAGO_SPEI;
+        }
+        if ("MXN".equals(m) && !"MX".equals(p)) {
+            return TIPO_PAGO_WIRE;
         }
         return TIPO_PAGO_WIRE;
     }
 
     /**
-     * Determina de forma centralizada las opciones disponibles para el selector
-     * según la moneda, país del beneficiario y la disponibilidad de códigos ABA y SWIFT.
-     * Mapeo de routing:
-     * - ACH  -> requiere ABA
-     * - WIRE -> requiere SWIFT
-     * - SPID -> requiere SWIFT
-     * - SPEI -> requiere SWIFT
+     * Determina las opciones de transferencia disponibles (capacidad operativa)
+     * según los datos bancarios del proveedor (ABA y SWIFT).
+     *
+     * No modifica el tipo sugerido por regla de negocio.
      */
     public static List<String> determinarOpcionesTipoPago(String moneda, String pais, boolean tieneAba, boolean tieneSwift) {
-        List<String> opciones = new java.util.ArrayList<>();
         String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
         String p = pais != null ? pais.trim().toUpperCase(java.util.Locale.ROOT) : "";
-        String sugerido = calcularTipoPagoAutomatico(m, p);
 
-        // Caso exclusivo MXN + MX: según la regla funcional acordada, la única opción válida es SPEI
-        if ("MXN".equals(m) && "MX".equals(p)) {
+        List<String> opciones = new java.util.ArrayList<>();
+
+        if ("MXN".equals(m)) {
             if (tieneSwift) {
                 opciones.add(TIPO_PAGO_SPEI);
             }
             return opciones;
         }
 
-        // Si el sugerido es ACH y tiene ABA, agregarlo como primera opción
-        if (TIPO_PAGO_ACH.equals(sugerido) && tieneAba) {
-            opciones.add(TIPO_PAGO_ACH);
-        }
-
-        // Si el sugerido requiere SWIFT y el proveedor lo tiene
-        if (tieneSwift) {
-            if (TIPO_PAGO_SPEI.equals(sugerido)) {
-                opciones.add(TIPO_PAGO_SPEI);
-            } else if (TIPO_PAGO_SPID.equals(sugerido)) {
-                opciones.add(TIPO_PAGO_SPID);
+        if ("USD".equals(m)) {
+            if ("US".equals(p)) {
+                // Caso US: si tiene ABA -> ACH; si tiene SWIFT -> WIRE, SPID
+                if (tieneAba) {
+                    opciones.add(TIPO_PAGO_ACH);
+                }
+                if (tieneSwift) {
+                    opciones.add(TIPO_PAGO_WIRE);
+                    opciones.add(TIPO_PAGO_SPID);
+                }
+            } else if ("MX".equals(p)) {
+                // Caso MX: si tiene SWIFT -> SPID, WIRE; si tiene ABA -> ACH
+                if (tieneSwift) {
+                    opciones.add(TIPO_PAGO_SPID);
+                    opciones.add(TIPO_PAGO_WIRE);
+                }
+                if (tieneAba) {
+                    opciones.add(TIPO_PAGO_ACH);
+                }
+            } else {
+                // Terceros países (ej. CA): si tiene SWIFT -> WIRE, SPID; si tiene ABA -> ACH
+                if (tieneSwift) {
+                    opciones.add(TIPO_PAGO_WIRE);
+                    opciones.add(TIPO_PAGO_SPID);
+                }
+                if (tieneAba) {
+                    opciones.add(TIPO_PAGO_ACH);
+                }
             }
+            return opciones;
         }
 
-        // Si el sugerido no era ACH pero tiene ABA en USD
-        if (!opciones.contains(TIPO_PAGO_ACH) && tieneAba && "USD".equalsIgnoreCase(m)) {
-            opciones.add(TIPO_PAGO_ACH);
-        }
-
-        // WIRE está disponible para transferencias con SWIFT si no es pago nacional MXN
-        if (tieneSwift && !opciones.contains(TIPO_PAGO_WIRE) && !"MXN".equals(m)) {
+        // Fallback para otras monedas
+        if (tieneSwift) {
             opciones.add(TIPO_PAGO_WIRE);
         }
-
-        // Si el proveedor tiene SWIFT y es USD, asegurar que SPID esté disponible
-        if (tieneSwift && "USD".equalsIgnoreCase(m) && !opciones.contains(TIPO_PAGO_SPID)) {
-            opciones.add(TIPO_PAGO_SPID);
+        if (tieneAba) {
+            opciones.add(TIPO_PAGO_ACH);
         }
-
         return opciones;
     }
 
@@ -280,5 +298,99 @@ public final class EmpresaUtils {
             opciones.add(TIPO_PAGO_SPEI);
         }
         return opciones;
+    }
+
+    /**
+     * Resuelve de forma centralizada los dos conceptos separados:
+     * 1. Tipo sugerido por regla oficial de negocio (moneda y país).
+     * 2. Opciones disponibles por capacidad bancaria (ABA y SWIFT).
+     *
+     * Valida si el método seleccionado/sugerido cuenta con el routing code requerido,
+     * emitiendo la advertencia correspondiente en caso de faltar.
+     */
+    public static ResolucionTipoPago resolverTipoPago(
+            String moneda,
+            String pais,
+            boolean tieneAba,
+            boolean tieneSwift,
+            String tipoPersistido) {
+
+        String tipoSugerido = calcularTipoPagoAutomatico(moneda, pais);
+        List<String> opciones = determinarOpcionesTipoPago(moneda, pais, tieneAba, tieneSwift);
+
+        String persistidoNorm = normalizarTipoPago(tipoPersistido);
+        String tipoEfectivo = persistidoNorm != null ? persistidoNorm : tipoSugerido;
+
+        // Validación técnica de datos bancarios:
+        if (TIPO_PAGO_ACH.equals(tipoEfectivo)) {
+            if (!tieneAba) {
+                String adv = tipoEfectivo.equals(tipoSugerido)
+                        ? "El tipo sugerido ACH requiere Routing Code ABA."
+                        : "El tipo seleccionado ACH requiere Routing Code ABA.";
+                return new ResolucionTipoPago(
+                        opciones,
+                        tipoSugerido,
+                        tipoEfectivo,
+                        ResolucionTipoPago.Clasificacion.FALTA_ABA,
+                        adv
+                );
+            }
+        } else {
+            // WIRE, SPID, SPEI requieren SWIFT
+            if (!tieneSwift) {
+                String adv = tipoEfectivo.equals(tipoSugerido)
+                        ? "El tipo sugerido " + tipoEfectivo + " requiere Routing Code SWIFT."
+                        : "El tipo seleccionado " + tipoEfectivo + " requiere Routing Code SWIFT.";
+                return new ResolucionTipoPago(
+                        opciones,
+                        tipoSugerido,
+                        tipoEfectivo,
+                        ResolucionTipoPago.Clasificacion.FALTA_SWIFT,
+                        adv
+                );
+            }
+        }
+
+        return new ResolucionTipoPago(
+                opciones,
+                tipoSugerido,
+                tipoEfectivo,
+                ResolucionTipoPago.Clasificacion.VALIDA,
+                "Método " + tipoEfectivo + " válido con datos bancarios completos."
+        );
+    }
+
+
+    /**
+     * Emite un log estructurado sin exponer información bancaria sensible (cuentas o códigos completos).
+     */
+    public static void logResolucion(
+            Logger log,
+            Object idPago,
+            String archivo,
+            String proveedor,
+            String empresa,
+            String moneda,
+            String pais,
+            boolean tieneAba,
+            boolean tieneSwift,
+            String tipoPersistido,
+            ResolucionTipoPago resolucion) {
+
+        if (log != null && log.isInfoEnabled()) {
+            log.info("[RESOLUCION-TIPO-PAGO] idPago={} archivo={} proveedor={} empresa={} moneda={} pais={} tieneAba={} tieneSwift={} tipoPersistido={} opcionesValidas={} clasificacion={} motivo={}",
+                    idPago != null ? idPago : "NUEVO",
+                    archivo != null ? archivo : "",
+                    proveedor != null ? proveedor : "",
+                    empresa != null ? empresa : "",
+                    moneda != null ? moneda : "",
+                    pais != null ? pais : "",
+                    tieneAba,
+                    tieneSwift,
+                    tipoPersistido != null ? tipoPersistido : "NULL",
+                    resolucion != null ? resolucion.getOpcionesValidas() : "[]",
+                    resolucion != null ? resolucion.getClasificacion() : "DESCONOCIDA",
+                    resolucion != null ? resolucion.getMotivo() : "");
+        }
     }
 }
