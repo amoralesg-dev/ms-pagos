@@ -35,6 +35,7 @@ import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
+import com.rassini.pagos.util.ResolucionTipoPago;
 import com.rassini.pagos.util.TxtParser;
 
 import lombok.extern.log4j.Log4j2;
@@ -732,16 +733,46 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
 
-                        // Cálculo inicial automático del método de transferencia para layout según moneda y país
+                        // Clasificación según reglas oficiales de negocio (USD+US->ACH, USD+MX->SPID, MXN+MX->SPEI, USD+otro->WIRE)
+                        // ABA y SWIFT NO participan en la clasificación.
                         String paisBeneficiario = supplier != null ? supplier.getCountryCode() : null;
                         String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
                         pago.setTipoPagoSeleccionado(tipoCalculado);
+
+                        boolean tieneAba = supplier != null && supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
+                        boolean tieneSwift = supplier != null && supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
+
+                        ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                                pago.getMoneda(),
+                                paisBeneficiario,
+                                tieneAba,
+                                tieneSwift,
+                                tipoCalculado
+                        );
+
+                        EmpresaUtils.logResolucion(
+                                log,
+                                pago.getId(),
+                                pago.getNombreArchivo(),
+                                pago.getCodigoProveedor(),
+                                pago.getEmpresa(),
+                                pago.getMoneda(),
+                                paisBeneficiario,
+                                tieneAba,
+                                tieneSwift,
+                                tipoCalculado,
+                                resolucion
+                        );
                     }
 
                     batch.add(pago);
 
                     if (batch.size() == 500) {
                         repository.saveAll(batch);
+                        for (PagosArchivo pGuardado : batch) {
+                            log.info("[RESOLUCION-TIPO-PAGO-PERSISTIDO] idPago={} archivo={} proveedor={} empresa={} tipoPersistido={}",
+                                    pGuardado.getId(), pGuardado.getNombreArchivo(), pGuardado.getCodigoProveedor(), pGuardado.getEmpresa(), pGuardado.getTipoPagoSeleccionado());
+                        }
                         batch.clear();
                     }
 
@@ -752,6 +783,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
             if (!batch.isEmpty()) {
                 repository.saveAll(batch);
+                for (PagosArchivo pGuardado : batch) {
+                    log.info("[RESOLUCION-TIPO-PAGO-PERSISTIDO] idPago={} archivo={} proveedor={} empresa={} tipoPersistido={}",
+                            pGuardado.getId(), pGuardado.getNombreArchivo(), pGuardado.getCodigoProveedor(), pGuardado.getEmpresa(), pGuardado.getTipoPagoSeleccionado());
+                }
             }
 
             log.info("Archivo procesado: " + archivo.getName());
