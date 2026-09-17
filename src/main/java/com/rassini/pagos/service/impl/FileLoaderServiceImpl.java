@@ -33,6 +33,7 @@ import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
+import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
 import com.rassini.pagos.util.TxtParser;
 
@@ -580,12 +581,12 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         String empresaPadre =
                 EmpresaUtils.obtenerEmpresaPadre(empresa);
 
-        Supplier supplier = (Supplier) supplierRepository
+        List<Supplier> suppliers = supplierRepository
                 .findByErpIdQadAndBusinessUnitCode(
                         codigoProveedor,
                         empresaPadre);
 
-        if (supplier == null) {
+        if (suppliers == null || suppliers.isEmpty()) {
             throw new BusinessExceptionCode(
                     ErrorCodes.ERR045,
                     String.format(
@@ -594,7 +595,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                             empresaPadre));
         }
 
-        return supplier;
+        if (suppliers.size() > 1) {
+            throw new BusinessExceptionCode(
+                    ErrorCodes.ERR031,
+                    String.format(
+                            "Existe más de un supplier para proveedor %s en empresa %s. No es posible determinar un Supplier único sin cuenta beneficiario.",
+                            codigoProveedor,
+                            empresaPadre));
+        }
+
+        return suppliers.get(0);
     }
 
     @Override
@@ -684,21 +694,16 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
 
-                    // Validar si existe duplicado (en memoria para el archivo actual y luego en BD)
-                    String uniqueKey = pago.getNombreArchivo() + "|" +
-                                       pago.getMonto() + "|" +
-                                       pago.getCodigoProveedor() + "|" +
-                                       pago.getFechaEnvio();
+                    // Validar si existe duplicado por referencia (en memoria para el archivo actual y luego en BD)
+                    String refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
 
-                    boolean existeDuplicado = registrosProcesados.contains(uniqueKey);
+                    boolean existeDuplicado = false;
+                    if (!refNormalizada.isEmpty()) {
+                        existeDuplicado = registrosProcesados.contains(refNormalizada);
 
-                    if (!existeDuplicado) {
-                        existeDuplicado = repository.existsByNombreArchivoAndMontoAndCodigoProveedorAndFechaEnvio(
-                            pago.getNombreArchivo(),
-                            pago.getMonto(),
-                            pago.getCodigoProveedor(),
-                            pago.getFechaEnvio()
-                        );
+                        if (!existeDuplicado) {
+                            existeDuplicado = repository.existsByReferenciaTrim(refNormalizada);
+                        }
                     }
 
                     if (existeDuplicado) {
@@ -714,7 +719,9 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                         asignarReferenciaProveedor(pago);
 
-                        registrosProcesados.add(uniqueKey);
+                        if (!refNormalizada.isEmpty()) {
+                            registrosProcesados.add(refNormalizada);
+                        }
 
                       }
 
@@ -724,6 +731,11 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     } else {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
+
+                        // Cálculo inicial automático del método de transferencia para layout según moneda y país
+                        String paisBeneficiario = supplier != null ? supplier.getCountryCode() : null;
+                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
+                        pago.setTipoPagoSeleccionado(tipoCalculado);
                     }
 
                     batch.add(pago);

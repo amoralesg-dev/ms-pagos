@@ -18,6 +18,9 @@ public interface PagosArchivoRepository extends JpaRepository<PagosArchivo, Long
                         String codigoProveedor,
                         String fechaEnvio);
 
+        @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM PagosArchivo p WHERE TRIM(p.referencia) = :referencia")
+        boolean existsByReferenciaTrim(@Param("referencia") String referencia);
+
         List<PagosArchivo> findByEmpresaAndEstatus(
                         String empresa,
                         String estatus);

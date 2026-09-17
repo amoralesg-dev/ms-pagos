@@ -105,6 +105,9 @@ public class PagosArchivo {
     @Column(name = "referencia_manual")
     private String referenciaManual;
 
+    @Column(name = "tipo_pago_seleccionado")
+    private String tipoPagoSeleccionado;
+
     //  FK por deal_type (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deal_type", referencedColumnName = "deal_type")

@@ -2,6 +2,7 @@ package com.rassini.pagos.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -145,5 +146,139 @@ public final class EmpresaUtils {
         }
         String padre = EMPRESA_PADRE_MAP.get(empresa.trim());
         return padre != null ? padre : empresa.trim();
+    }
+
+    /**
+     * Plantas habilitadas por negocio para la funcionalidad ACH/WIRE.
+     * Centralizado en un único Set para que agregar nuevas plantas en el futuro sea trivial.
+     */
+    private static final Set<String> EMPRESAS_ACH_WIRE = Set.of(
+            "1850",
+            "09"
+    );
+
+    /**
+     * Determina de forma centralizada si una empresa (o su empresa padre)
+     * participa en la funcionalidad de selección ACH/WIRE.
+     */
+    public static boolean aplicaTransferenciaAchWire(String empresa) {
+        return true;
+    }
+
+    /**
+     * Valores permitidos para tipo_pago_seleccionado:
+     * - ACH (usa Routing Code ABA)
+     * - WIRE (usa Routing Code SWIFT)
+     * - SPID (usa Routing Code SWIFT)
+     * - SPEI (usa Routing Code SWIFT)
+     */
+    public static final String TIPO_PAGO_ACH = "ACH";
+    public static final String TIPO_PAGO_WIRE = "WIRE";
+    public static final String TIPO_PAGO_SPID = "SPID";
+    public static final String TIPO_PAGO_SPEI = "SPEI";
+
+    public static final Set<String> TIPOS_PAGO_SELECCIONADOS_PERMITIDOS = Set.of(
+            TIPO_PAGO_ACH,
+            TIPO_PAGO_WIRE,
+            TIPO_PAGO_SPID,
+            TIPO_PAGO_SPEI
+    );
+
+    /**
+     * Calcula automáticamente el tipo de pago según las reglas de negocio confirmadas:
+     * - USD + US              -> ACH
+     * - MXN + MX              -> SPEI
+     * - USD + MX              -> SPID
+     * - USD + país <> MX      -> SPID (cubre país distinto de MX cuando no es US para USD)
+     * - Por compatibilidad/default: WIRE
+     */
+    public static String calcularTipoPagoAutomatico(String moneda, String pais) {
+        String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        String p = pais != null ? pais.trim().toUpperCase(java.util.Locale.ROOT) : "";
+
+        if ("USD".equals(m) && "US".equals(p)) {
+            return TIPO_PAGO_ACH;
+        }
+        if ("MXN".equals(m) && "MX".equals(p)) {
+            return TIPO_PAGO_SPEI;
+        }
+        if ("USD".equals(m) && "MX".equals(p)) {
+            return TIPO_PAGO_SPID;
+        }
+        if ("USD".equals(m) && !"MX".equals(p)) {
+            return TIPO_PAGO_SPID;
+        }
+        return TIPO_PAGO_WIRE;
+    }
+
+    /**
+     * Determina de forma centralizada las opciones disponibles para el selector
+     * según la moneda, país del beneficiario y la disponibilidad de códigos ABA y SWIFT.
+     * Mapeo de routing:
+     * - ACH  -> requiere ABA
+     * - WIRE -> requiere SWIFT
+     * - SPID -> requiere SWIFT
+     * - SPEI -> requiere SWIFT
+     */
+    public static List<String> determinarOpcionesTipoPago(String moneda, String pais, boolean tieneAba, boolean tieneSwift) {
+        List<String> opciones = new java.util.ArrayList<>();
+        String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        String p = pais != null ? pais.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        String sugerido = calcularTipoPagoAutomatico(m, p);
+
+        // Caso exclusivo MXN + MX: según la regla funcional acordada, la única opción válida es SPEI
+        if ("MXN".equals(m) && "MX".equals(p)) {
+            if (tieneSwift) {
+                opciones.add(TIPO_PAGO_SPEI);
+            }
+            return opciones;
+        }
+
+        // Si el sugerido es ACH y tiene ABA, agregarlo como primera opción
+        if (TIPO_PAGO_ACH.equals(sugerido) && tieneAba) {
+            opciones.add(TIPO_PAGO_ACH);
+        }
+
+        // Si el sugerido requiere SWIFT y el proveedor lo tiene
+        if (tieneSwift) {
+            if (TIPO_PAGO_SPEI.equals(sugerido)) {
+                opciones.add(TIPO_PAGO_SPEI);
+            } else if (TIPO_PAGO_SPID.equals(sugerido)) {
+                opciones.add(TIPO_PAGO_SPID);
+            }
+        }
+
+        // Si el sugerido no era ACH pero tiene ABA en USD
+        if (!opciones.contains(TIPO_PAGO_ACH) && tieneAba && "USD".equalsIgnoreCase(m)) {
+            opciones.add(TIPO_PAGO_ACH);
+        }
+
+        // WIRE está disponible para transferencias con SWIFT si no es pago nacional MXN
+        if (tieneSwift && !opciones.contains(TIPO_PAGO_WIRE) && !"MXN".equals(m)) {
+            opciones.add(TIPO_PAGO_WIRE);
+        }
+
+        // Si el proveedor tiene SWIFT y es USD, asegurar que SPID esté disponible
+        if (tieneSwift && "USD".equalsIgnoreCase(m) && !opciones.contains(TIPO_PAGO_SPID)) {
+            opciones.add(TIPO_PAGO_SPID);
+        }
+
+        return opciones;
+    }
+
+    /**
+     * Sobrecarga de compatibilidad para código/tests que solo envían flags ABA y SWIFT.
+     */
+    public static List<String> determinarOpcionesTipoPago(boolean tieneAba, boolean tieneSwift) {
+        List<String> opciones = new java.util.ArrayList<>();
+        if (tieneAba) {
+            opciones.add(TIPO_PAGO_ACH);
+        }
+        if (tieneSwift) {
+            opciones.add(TIPO_PAGO_WIRE);
+            opciones.add(TIPO_PAGO_SPID);
+            opciones.add(TIPO_PAGO_SPEI);
+        }
+        return opciones;
     }
 }

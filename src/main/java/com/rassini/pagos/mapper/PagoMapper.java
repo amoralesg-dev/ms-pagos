@@ -33,8 +33,7 @@ public class PagoMapper {
         }
         dto.setReferenciaManual(entity.getReferenciaManual());
         dto.setBu(entity.getEmpresa());
-
-       
+        dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
 
         return dto;
     }
