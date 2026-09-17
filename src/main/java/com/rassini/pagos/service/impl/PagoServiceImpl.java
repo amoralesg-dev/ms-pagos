@@ -43,6 +43,7 @@ import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
 import com.rassini.pagos.service.PagoService;
 import com.rassini.pagos.util.AnaliticaPendientesUtils;
+import com.rassini.pagos.util.ResolucionTipoPago;
 import com.rassini.pagos.util.BuUtils;
 import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
@@ -224,17 +225,28 @@ public class PagoServiceImpl implements PagoService {
                 tieneAba = supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
                 tieneSwift = supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
                 paisBeneficiario = supplier.getCountryCode();
-            }
 
-            dto.setTieneAba(tieneAba);
-            dto.setTieneSwift(tieneSwift);
-            dto.setOpcionesTipoPago(EmpresaUtils.determinarOpcionesTipoPago(entity.getMoneda(), paisBeneficiario, tieneAba, tieneSwift));
+                ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                        entity.getMoneda(),
+                        paisBeneficiario,
+                        tieneAba,
+                        tieneSwift,
+                        entity.getTipoPagoSeleccionado()
+                );
 
-            // Fallback centralizado: si tipoPagoSeleccionado es null (registro histórico),
-            // calcula el valor usando la misma regla automática del negocio basada en moneda y país.
-            if (dto.getTipoPagoSeleccionado() == null || dto.getTipoPagoSeleccionado().isBlank()) {
-                String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(entity.getMoneda(), paisBeneficiario);
-                dto.setTipoPagoSeleccionado(tipoCalculado);
+                dto.setTieneAba(tieneAba);
+                dto.setTieneSwift(tieneSwift);
+                dto.setTipoSugerido(resolucion.getTipoSugerido());
+                dto.setOpcionesTipoPago(resolucion.getOpcionesValidas());
+                dto.setTipoPagoSeleccionado(resolucion.getTipoResuelto());
+                dto.setAdvertenciaTipoPago(resolucion.isErrorDatosBancarios() ? resolucion.getAdvertencia() : null);
+            } else {
+                dto.setTieneAba(false);
+                dto.setTieneSwift(false);
+                dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getMoneda(), null));
+                dto.setOpcionesTipoPago(Collections.emptyList());
+                dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
+                dto.setAdvertenciaTipoPago(null);
             }
             return dto;
         });
@@ -456,38 +468,67 @@ public class PagoServiceImpl implements PagoService {
                     if (s != null) {
                         boolean aba = s.getRoutingCodeAba() != null && !s.getRoutingCodeAba().isBlank();
                         boolean swift = s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank();
-                        List<String> validas = EmpresaUtils.determinarOpcionesTipoPago(p.getMoneda(), s.getCountryCode(), aba, swift);
-                        String persistido = p.getTipoPagoSeleccionado();
+                        String pais = s.getCountryCode();
 
-                        if (validas == null || validas.isEmpty()) {
-                            errores.add(
-                                "El pago id " + p.getId()
-                                + " (prov " + p.getCodigoProveedor()
-                                + ") no cuenta con opciones de transferencia válidas. "
-                                + "El proveedor requiere Routing Code ABA o SWIFT."
-                            );
-                        } else if (persistido == null || persistido.isBlank()) {
-                            errores.add(
-                                "El pago id " + p.getId()
-                                + " (prov " + p.getCodigoProveedor()
-                                + ") no tiene un tipo de transferencia seleccionado."
-                            );
-                        } else {
-                            String normalizado = null;
-                            for (String permitido : EmpresaUtils.TIPOS_PAGO_SELECCIONADOS_PERMITIDOS) {
-                                if (permitido.equalsIgnoreCase(persistido.trim())) {
-                                    normalizado = permitido;
-                                    break;
+                        ResolucionTipoPago res = EmpresaUtils.resolverTipoPago(
+                                p.getMoneda(),
+                                pais,
+                                aba,
+                                swift,
+                                p.getTipoPagoSeleccionado()
+                        );
+
+                        EmpresaUtils.logResolucion(
+                                log,
+                                p.getId(),
+                                p.getNombreArchivo(),
+                                p.getCodigoProveedor(),
+                                p.getEmpresa(),
+                                p.getMoneda(),
+                                pais,
+                                aba,
+                                swift,
+                                p.getTipoPagoSeleccionado(),
+                                res
+                        );
+
+                        String tipoOficial = EmpresaUtils.calcularTipoPagoAutomatico(p.getMoneda(), pais);
+                        String tipoEfectivo = p.getTipoPagoSeleccionado();
+                        if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
+                            tipoEfectivo = tipoOficial;
+                        }
+
+                        String tipoNorm = EmpresaUtils.normalizarTipoPago(tipoEfectivo);
+                        if (tipoNorm == null) {
+                            errores.add("El pago id " + p.getId() + " del proveedor " + p.getCodigoProveedor()
+                                    + " tiene un tipo de pago no permitido: " + tipoEfectivo);
+                            continue;
+                        }
+
+                        if ("MXN".equalsIgnoreCase(p.getMoneda()) && !EmpresaUtils.TIPO_PAGO_SPEI.equals(tipoNorm)) {
+                            errores.add("El pago id " + p.getId() + " del proveedor " + p.getCodigoProveedor()
+                                    + " tiene tipo " + tipoNorm + ", pero por regla de negocio la única opción válida es SPEI.");
+                            continue;
+                        }
+
+                        // Validación técnica de datos bancarios:
+                        // ABA y SWIFT solamente se utilizan para validar si el método seleccionado puede ejecutarse.
+                        if (EmpresaUtils.TIPO_PAGO_ACH.equals(tipoNorm)) {
+                            if (!aba) {
+                                String errorMsg = "Proveedor " + p.getCodigoProveedor()
+                                        + " no cuenta con Routing Code ABA requerido para ACH.";
+                                if (!errores.contains(errorMsg)) {
+                                    errores.add(errorMsg);
                                 }
                             }
-                            if (normalizado == null || !validas.contains(normalizado)) {
-                                errores.add(
-                                    "El pago id " + p.getId()
-                                    + " (prov " + p.getCodigoProveedor()
-                                    + ") tiene tipo '" + (normalizado != null ? normalizado : persistido.trim())
-                                    + "' no compatible con las opciones válidas "
-                                    + validas + ". Requiere corrección."
-                                );
+                        } else {
+                            // WIRE, SPID, SPEI requieren SWIFT
+                            if (!swift) {
+                                String errorMsg = "Proveedor " + p.getCodigoProveedor()
+                                        + " no cuenta con Routing Code SWIFT requerido para " + tipoNorm + ".";
+                                if (!errores.contains(errorMsg)) {
+                                    errores.add(errorMsg);
+                                }
                             }
                         }
                     }
@@ -709,7 +750,7 @@ public class PagoServiceImpl implements PagoService {
 
             String tipoEfectivo = pago.getTipoPagoSeleccionado();
             if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
-                tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), supplier.getCountryCode());
+                tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), supplier != null ? supplier.getCountryCode() : null);
             }
 
             // Normalizar case de forma insensible para los valores permitidos
@@ -728,16 +769,16 @@ public class PagoServiceImpl implements PagoService {
             if (EmpresaUtils.TIPO_PAGO_ACH.equals(tipoNormalizado)) {
                 String aba = supplier.getRoutingCodeAba();
                 if (aba == null || aba.isBlank()) {
-                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
-                            + " no cuenta con Routing Code ABA requerido para pagos ACH");
+                    throw new BusinessException("Proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code ABA requerido para ACH.");
                 }
                 campos[22] = nvl(aba);
             } else {
                 // WIRE, SPID, SPEI utilizan Routing Code SWIFT
                 String swift = supplier.getRoutingCodeSwift();
                 if (swift == null || swift.isBlank()) {
-                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
-                            + " no cuenta con Routing Code SWIFT requerido para pagos " + tipoNormalizado);
+                    throw new BusinessException("Proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code SWIFT requerido para " + tipoNormalizado + ".");
                 }
                 campos[22] = nvl(swift);
             }
