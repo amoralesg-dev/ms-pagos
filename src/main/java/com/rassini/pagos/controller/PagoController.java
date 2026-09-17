@@ -49,7 +49,8 @@ public class PagoController {
         Map.entry("nombreArchivoEnvio", "nombreArchivoEnvio"),
         Map.entry("tipoPago", "tipoPago.dealType"),
         Map.entry("estatus", "estatus"),
-        Map.entry("fechaEnvio", "fechaEnvio")
+        Map.entry("fechaEnvio", "fechaEnvio"),
+        Map.entry("tipoPagoSeleccionado", "tipoPagoSeleccionado")
     );
 
     private Pageable createSafePageable(int page, int size, String sortField, String sortOrder) {
@@ -247,6 +248,30 @@ public class PagoController {
         );
 
         return "Referencias manuales actualizadas correctamente";
+    }
+
+    @PutMapping("/{id}/tipo-pago-seleccionado")
+    public String actualizarTipoPagoSeleccionado(
+            @PathVariable Long id,
+            @RequestBody com.rassini.pagos.dto.TipoPagoSeleccionadoDTO request) {
+
+        service.actualizarTipoPagoSeleccionado(
+                id,
+                request.getTipoPagoSeleccionado()
+        );
+
+        return "Tipo de pago seleccionado actualizado correctamente";
+    }
+
+    @PutMapping("/tipos-pago-seleccionados")
+    public String actualizarTiposPagoSeleccionados(
+            @RequestBody com.rassini.pagos.dto.ActualizarTipoPagoSeleccionadoDTO request) {
+
+        service.actualizarTiposPagoSeleccionados(
+                request.getItems()
+        );
+
+        return "Tipos de pago seleccionados actualizados correctamente";
     }
 
     @GetMapping("/analitica-pendientes")

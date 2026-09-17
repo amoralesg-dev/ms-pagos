@@ -29,6 +29,7 @@ import com.rassini.pagos.dto.AnaliticaPendientesTipoPagoDTO;
 import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualItemDTO;
+import com.rassini.pagos.dto.SumaPorMonedaDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
 import com.rassini.pagos.entity.CatalogoTipoPago;
 import com.rassini.pagos.entity.PagosArchivo;
@@ -188,7 +189,57 @@ public class PagoServiceImpl implements PagoService {
 
         }
 
-        return page.map(PagoMapper::toDTO);
+        return page.map(entity -> {
+            PagoPendienteDTO dto = PagoMapper.toDTO(entity);
+            boolean tieneAba = false;
+            boolean tieneSwift = false;
+            String paisBeneficiario = null;
+
+            Supplier supplier = null;
+            if (entity.getCodigoProveedor() != null && !entity.getCodigoProveedor().isBlank()
+                    && entity.getCuentaBeneficiario() != null && !entity.getCuentaBeneficiario().isBlank()) {
+                try {
+                    String ultimos8 = fileLoaderService.obtenerUltimos8DigitosCuenta(entity.getCuentaBeneficiario());
+                    supplier = fileLoaderService.obtenerSupplierPadrePorCuenta(
+                            entity.getCodigoProveedor(),
+                            entity.getEmpresa(),
+                            ultimos8);
+                } catch (Exception e) {
+                    log.debug("No se pudo resolver supplier específico por cuenta para pago id {}: {}", entity.getId(), e.getMessage());
+                }
+            }
+
+            // Si no se encontró por cuenta exacta o venía sin cuenta, intentar por empresa padre
+            if (supplier == null && entity.getCodigoProveedor() != null && !entity.getCodigoProveedor().isBlank()
+                    && entity.getEmpresa() != null && !entity.getEmpresa().isBlank()) {
+                try {
+                    supplier = fileLoaderService.obtenerSupplierPadre(entity.getCodigoProveedor(), entity.getEmpresa());
+                } catch (Exception e) {
+                    log.debug("No se pudo resolver supplier por empresa padre para pago id {}: {}", entity.getId(), e.getMessage());
+                }
+            }
+
+            // Extraer capacidades y país estrictamente del MISMO supplier resuelto
+            if (supplier != null) {
+                tieneAba = supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
+                tieneSwift = supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
+                paisBeneficiario = supplier.getCountryCode();
+            }
+
+            dto.setTieneAba(tieneAba);
+            dto.setTieneSwift(tieneSwift);
+            dto.setOpcionesTipoPago(EmpresaUtils.determinarOpcionesTipoPago(entity.getMoneda(), paisBeneficiario, tieneAba, tieneSwift));
+
+            // Fallback centralizado: si tipoPagoSeleccionado es null (registro histórico),
+            // calcula el valor usando la misma regla automática del negocio basada en moneda y país.
+            if (dto.getTipoPagoSeleccionado() == null || dto.getTipoPagoSeleccionado().isBlank()) {
+                String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(entity.getMoneda(), paisBeneficiario);
+                dto.setTipoPagoSeleccionado(tipoCalculado);
+            }
+            return dto;
+        });
+
+
     }
     @Override
     public com.rassini.pagos.dto.PagosEnviadosResponseDTO filtrarEnviadosPaginado(
@@ -275,9 +326,9 @@ public class PagoServiceImpl implements PagoService {
                         })
                 ));
 
-        List<com.rassini.pagos.dto.SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
+        List<SumaPorMonedaDTO> sumasList = sumasMap.entrySet().stream()
                 .map(entry -> new com.rassini.pagos.dto.SumaPorMonedaDTO(entry.getKey(), entry.getValue()))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
         return com.rassini.pagos.dto.PagosEnviadosResponseDTO.builder()
                 .page(dtoPage)
@@ -385,6 +436,62 @@ public class PagoServiceImpl implements PagoService {
                                 "El archivo %s tiene %d pago(s) sin clasificar",
                                 nombreArchivo,
                                 sinClasificar));
+            }
+
+            // Validar que los tipos de pago seleccionados sean compatibles con el supplier resuelto
+            for (PagosArchivo p : entry.getValue()) {
+                if (p.getCodigoProveedor() != null && !p.getCodigoProveedor().isBlank()) {
+                    Supplier s = null;
+                    if (p.getCuentaBeneficiario() != null && !p.getCuentaBeneficiario().isBlank()) {
+                        try {
+                            String u8 = fileLoaderService.obtenerUltimos8DigitosCuenta(p.getCuentaBeneficiario());
+                            s = fileLoaderService.obtenerSupplierPadrePorCuenta(p.getCodigoProveedor(), p.getEmpresa(), u8);
+                        } catch (Exception ignored) {}
+                    }
+                    if (s == null) {
+                        try {
+                            s = fileLoaderService.obtenerSupplierPadre(p.getCodigoProveedor(), p.getEmpresa());
+                        } catch (Exception ignored) {}
+                    }
+                    if (s != null) {
+                        boolean aba = s.getRoutingCodeAba() != null && !s.getRoutingCodeAba().isBlank();
+                        boolean swift = s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank();
+                        List<String> validas = EmpresaUtils.determinarOpcionesTipoPago(p.getMoneda(), s.getCountryCode(), aba, swift);
+                        String persistido = p.getTipoPagoSeleccionado();
+
+                        if (validas == null || validas.isEmpty()) {
+                            errores.add(
+                                "El pago id " + p.getId()
+                                + " (prov " + p.getCodigoProveedor()
+                                + ") no cuenta con opciones de transferencia válidas. "
+                                + "El proveedor requiere Routing Code ABA o SWIFT."
+                            );
+                        } else if (persistido == null || persistido.isBlank()) {
+                            errores.add(
+                                "El pago id " + p.getId()
+                                + " (prov " + p.getCodigoProveedor()
+                                + ") no tiene un tipo de transferencia seleccionado."
+                            );
+                        } else {
+                            String normalizado = null;
+                            for (String permitido : EmpresaUtils.TIPOS_PAGO_SELECCIONADOS_PERMITIDOS) {
+                                if (permitido.equalsIgnoreCase(persistido.trim())) {
+                                    normalizado = permitido;
+                                    break;
+                                }
+                            }
+                            if (normalizado == null || !validas.contains(normalizado)) {
+                                errores.add(
+                                    "El pago id " + p.getId()
+                                    + " (prov " + p.getCodigoProveedor()
+                                    + ") tiene tipo '" + (normalizado != null ? normalizado : persistido.trim())
+                                    + "' no compatible con las opciones válidas "
+                                    + validas + ". Requiere corrección."
+                                );
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -600,26 +707,44 @@ public class PagoServiceImpl implements PagoService {
                             : "";
 
 
-            if(ConstantsSuppliers.Breakes.equalsIgnoreCase(pago.getEmpresa())){
-                String ruteo = supplier.getRoutingCodeAba();
-
-                if (ruteo == null || ruteo.isBlank()) {
-                        ruteo = supplier.getRoutingCodeSwift();
-                }else{
-                        log.info("ABA DETECTADO. Fecha envío original: {}", pago.getFechaEnvio());
-                        log.info("ABA DETECTADO. Fecha valor original: {}", pago.getFechaValor());
-
-                        campos[5] = sumarUnDia(pago.getFechaEnvio());
-                        campos[6] = sumarUnDia(pago.getFechaValor());
-
-                        log.info("ABA DETECTADO. Fecha envío +1: {}", campos[5]);
-                        log.info("ABA DETECTADO. Fecha valor +1: {}", campos[6]);
-                }
-                campos[22] = nvl(ruteo);
-            }else{
-                String ruteo = supplier.getRoutingCodeSwift();
-                campos[22] = nvl(ruteo);
+            String tipoEfectivo = pago.getTipoPagoSeleccionado();
+            if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
+                tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), supplier.getCountryCode());
             }
+
+            // Normalizar case de forma insensible para los valores permitidos
+            String tipoNormalizado = null;
+            for (String permitido : EmpresaUtils.TIPOS_PAGO_SELECCIONADOS_PERMITIDOS) {
+                if (permitido.equalsIgnoreCase(tipoEfectivo.trim())) {
+                    tipoNormalizado = permitido;
+                    break;
+                }
+            }
+            if (tipoNormalizado == null) {
+                throw new BusinessException("Tipo de pago seleccionado inválido: " + tipoEfectivo
+                        + ". Valores permitidos: ACH, WIRE, SPID, SPEI");
+            }
+
+            if (EmpresaUtils.TIPO_PAGO_ACH.equals(tipoNormalizado)) {
+                String aba = supplier.getRoutingCodeAba();
+                if (aba == null || aba.isBlank()) {
+                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code ABA requerido para pagos ACH");
+                }
+                campos[22] = nvl(aba);
+            } else {
+                // WIRE, SPID, SPEI utilizan Routing Code SWIFT
+                String swift = supplier.getRoutingCodeSwift();
+                if (swift == null || swift.isBlank()) {
+                    throw new BusinessException("El proveedor " + pago.getCodigoProveedor()
+                            + " no cuenta con Routing Code SWIFT requerido para pagos " + tipoNormalizado);
+                }
+                campos[22] = nvl(swift);
+            }
+
+            // Todos los métodos conservan las fechas originales
+            campos[5] = nvl(pago.getFechaEnvio());
+            campos[6] = nvl(pago.getFechaValor());
 
             campos[23] = nvl(supplier.getBankCountry());
             campos[24] = nvl(supplier.getIntermediaryAccount());
@@ -640,25 +765,6 @@ public class PagoServiceImpl implements PagoService {
             return String.join("|", campos);
     }
 
-    private String sumarUnDia(String fecha) {
-            if (fecha == null || fecha.isBlank()) {
-                    return fecha;
-            }
-
-            try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-
-                    LocalDate date = LocalDate.parse(fecha, formatter);
-
-                    return date
-                                    .plusDays(1)
-                                    .format(formatter);
-
-            } catch (Exception e) {
-                    log.error("Error procesando fecha [{}]", fecha, e);
-                    return fecha;
-            }
-    }
     private String nvl(String val) {
         return val == null ? "" : val;
     }
@@ -722,6 +828,100 @@ public class PagoServiceImpl implements PagoService {
                             referenciasPorId.get(pago.getId())));
 
             pagosRepo.saveAll(pagos);
+    }
+
+    @Override
+    @Transactional
+    public void actualizarTipoPagoSeleccionado(Long id, String tipoPagoSeleccionado) {
+            if (id == null) {
+                throw new BusinessException("El id del pago es obligatorio");
+            }
+            String tipoNormalizado = validarYNormalizarTipoPagoSeleccionado(tipoPagoSeleccionado);
+
+            PagosArchivo pago = pagosRepo.findById(id)
+                            .orElseThrow(() -> new BusinessException(
+                                            "No se encontró el pago con id: " + id));
+
+            if (!ConstantsSuppliers.PENDIENTE.equalsIgnoreCase(pago.getEstatus())) {
+                throw new BusinessException("Solo se pueden modificar pagos en estatus PENDIENTE. El pago con id "
+                        + id + " se encuentra en estatus: " + pago.getEstatus());
+            }
+
+            pago.setTipoPagoSeleccionado(tipoNormalizado);
+            pagosRepo.save(pago);
+    }
+
+    @Override
+    @Transactional
+    public void actualizarTiposPagoSeleccionados(
+                    List<com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO> items) {
+            if (items == null || items.isEmpty()) {
+                throw new BusinessException("La lista de pagos a actualizar no puede ser nula ni vacía");
+            }
+
+            // 1. Validar que ningún item sea null, ningún id sea null, valor permitido y detectar duplicados
+            java.util.Set<Long> idsUnicos = new java.util.HashSet<>();
+            for (com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO item : items) {
+                if (item == null) {
+                    throw new BusinessException("El elemento de pago a actualizar no puede ser nulo");
+                }
+                if (item.getId() == null) {
+                    throw new BusinessException("El id del pago es obligatorio en la actualización masiva");
+                }
+                if (!idsUnicos.add(item.getId())) {
+                    throw new BusinessException("Se detectó un ID duplicado en el request de actualización: " + item.getId());
+                }
+                validarYNormalizarTipoPagoSeleccionado(item.getTipoPagoSeleccionado());
+            }
+
+            List<Long> ids = items.stream()
+                            .map(com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO::getId)
+                            .toList();
+
+            // 2. Consultar entidades y comparar IDs solicitados vs encontrados
+            List<PagosArchivo> pagos = pagosRepo.findAllById(ids);
+            if (pagos.size() != ids.size()) {
+                java.util.Set<Long> encontradosIds = pagos.stream().map(PagosArchivo::getId).collect(Collectors.toSet());
+                List<Long> faltantes = ids.stream().filter(id -> !encontradosIds.contains(id)).toList();
+                throw new BusinessException("No se encontraron los siguientes pagos para actualizar: " + faltantes);
+            }
+
+            // 3. Validar que todos los pagos encontrados estén en estatus PENDIENTE
+            for (PagosArchivo pago : pagos) {
+                if (!ConstantsSuppliers.PENDIENTE.equalsIgnoreCase(pago.getEstatus())) {
+                    throw new BusinessException("Solo se pueden modificar pagos en estatus PENDIENTE. El pago con id "
+                            + pago.getId() + " se encuentra en estatus: " + pago.getEstatus());
+                }
+            }
+
+            // 4. Modificar entidades y persistir atómicamente dentro de la transacción
+            Map<Long, String> tiposPorId = items.stream()
+                            .collect(Collectors.toMap(
+                                             com.rassini.pagos.dto.TipoPagoSeleccionadoItemDTO::getId,
+                                             item -> validarYNormalizarTipoPagoSeleccionado(item.getTipoPagoSeleccionado())));
+
+            pagos.forEach(pago -> {
+                String nuevoTipo = tiposPorId.get(pago.getId());
+                if (nuevoTipo != null) {
+                    pago.setTipoPagoSeleccionado(nuevoTipo);
+                }
+            });
+
+            pagosRepo.saveAll(pagos);
+    }
+
+    private String validarYNormalizarTipoPagoSeleccionado(String tipoPagoSeleccionado) {
+            if (tipoPagoSeleccionado == null || tipoPagoSeleccionado.isBlank()) {
+                throw new BusinessException("El tipo de pago seleccionado es obligatorio");
+            }
+            String trim = tipoPagoSeleccionado.trim();
+            for (String permitido : EmpresaUtils.TIPOS_PAGO_SELECCIONADOS_PERMITIDOS) {
+                if (permitido.equalsIgnoreCase(trim)) {
+                    return permitido;
+                }
+            }
+            throw new BusinessException("Tipo de pago seleccionado inválido: " + tipoPagoSeleccionado
+                    + ". Valores permitidos: ACH, WIRE, SPID, SPEI");
     }
 
     @Override

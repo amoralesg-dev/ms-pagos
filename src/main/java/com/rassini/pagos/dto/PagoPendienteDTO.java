@@ -26,4 +26,8 @@ public class PagoPendienteDTO {
     private String mensaje;
     private String referenciaManual;
     private String bu;
+    private String tipoPagoSeleccionado;
+    private Boolean tieneAba;
+    private Boolean tieneSwift;
+    private java.util.List<String> opcionesTipoPago;
 }
