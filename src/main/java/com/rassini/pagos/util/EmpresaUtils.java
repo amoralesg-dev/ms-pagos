@@ -217,7 +217,7 @@ public final class EmpresaUtils {
         if ("MXN".equals(m) && "MX".equals(p)) {
             return TIPO_PAGO_SPEI;
         }
-        if ("MXN".equals(m) && !"MX".equals(p)) {
+        if ("USD".equals(m) && !"MX".equals(p)) {
             return TIPO_PAGO_WIRE;
         }
         return TIPO_PAGO_WIRE;
