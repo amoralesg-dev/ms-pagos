@@ -735,7 +735,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                         // Clasificación según reglas oficiales de negocio (USD+US->ACH, USD+MX->SPID, MXN+MX->SPEI, USD+otro->WIRE)
                         // ABA y SWIFT NO participan en la clasificación.
-                        String paisBeneficiario = supplier != null ? supplier.getCountryCode() : null;
+                        String paisBeneficiario = supplier != null ? supplier.getBankCountry() : null;
                         String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
                         pago.setTipoPagoSeleccionado(tipoCalculado);
 
