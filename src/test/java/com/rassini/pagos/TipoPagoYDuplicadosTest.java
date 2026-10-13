@@ -577,6 +577,7 @@ public class TipoPagoYDuplicadosTest {
 
         com.rassini.pagos.dto.PagoPendienteDTO dtoAch = com.rassini.pagos.mapper.PagoMapper.toDTO(pagoAch);
         assertEquals("ACH", dtoAch.getTipoPagoSeleccionado());
+        assertEquals("ACH - ABA", dtoAch.getTipoTransferencia());
 
         PagosArchivo pagoWire = new PagosArchivo();
         pagoWire.setId(20L);
@@ -584,6 +585,7 @@ public class TipoPagoYDuplicadosTest {
 
         com.rassini.pagos.dto.PagoPendienteDTO dtoWire = com.rassini.pagos.mapper.PagoMapper.toDTO(pagoWire);
         assertEquals("WIRE", dtoWire.getTipoPagoSeleccionado());
+        assertEquals("WIRE - SWIFT", dtoWire.getTipoTransferencia());
     }
 
     @Test
