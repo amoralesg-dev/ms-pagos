@@ -27,6 +27,7 @@ public class PagoPendienteDTO {
     private String referenciaManual;
     private String bu;
     private String tipoPagoSeleccionado;
+    private String tipoTransferencia;
     private String tipoSugerido;
     private String advertenciaTipoPago;
     private Boolean tieneAba;

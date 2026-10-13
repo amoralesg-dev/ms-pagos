@@ -239,6 +239,7 @@ public class PagoServiceImpl implements PagoService {
                 dto.setTipoSugerido(resolucion.getTipoSugerido());
                 dto.setOpcionesTipoPago(resolucion.getOpcionesValidas());
                 dto.setTipoPagoSeleccionado(resolucion.getTipoResuelto());
+                dto.setTipoTransferencia(EmpresaUtils.formatearTipoTransferencia(resolucion.getTipoResuelto()));
                 dto.setAdvertenciaTipoPago(resolucion.isErrorDatosBancarios() ? resolucion.getAdvertencia() : null);
             } else {
                 dto.setTieneAba(false);
@@ -246,6 +247,7 @@ public class PagoServiceImpl implements PagoService {
                 dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getMoneda(), null));
                 dto.setOpcionesTipoPago(Collections.emptyList());
                 dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
+                dto.setTipoTransferencia(EmpresaUtils.formatearTipoTransferencia(entity.getTipoPagoSeleccionado()));
                 dto.setAdvertenciaTipoPago(null);
             }
             return dto;
