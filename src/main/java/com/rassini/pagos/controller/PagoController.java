@@ -50,7 +50,8 @@ public class PagoController {
         Map.entry("tipoPago", "tipoPago.dealType"),
         Map.entry("estatus", "estatus"),
         Map.entry("fechaEnvio", "fechaEnvio"),
-        Map.entry("tipoPagoSeleccionado", "tipoPagoSeleccionado")
+        Map.entry("tipoPagoSeleccionado", "tipoPagoSeleccionado"),
+        Map.entry("tipoTransferencia", "tipoPagoSeleccionado")
     );
 
     private Pageable createSafePageable(int page, int size, String sortField, String sortOrder) {

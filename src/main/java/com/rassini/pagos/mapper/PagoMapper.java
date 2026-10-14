@@ -34,6 +34,7 @@ public class PagoMapper {
         dto.setReferenciaManual(entity.getReferenciaManual());
         dto.setBu(entity.getEmpresa());
         dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
+        dto.setTipoTransferencia(com.rassini.pagos.util.EmpresaUtils.formatearTipoTransferencia(entity.getTipoPagoSeleccionado()));
 
         return dto;
     }

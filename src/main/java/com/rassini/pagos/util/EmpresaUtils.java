@@ -195,6 +195,34 @@ public final class EmpresaUtils {
     }
 
     /**
+     * Formatea el tipo de pago a su etiqueta descriptiva con el routing code asociado:
+     * - ACH   -> "ACH - ABA"
+     * - WIRE  -> "WIRE - SWIFT"
+     * - SPID  -> "SPID - SWIFT"
+     * - SPEI  -> "SPEI - SWIFT"
+     * Si es nulo o vacío retorna cadena vacía o el valor original si no coincide.
+     */
+    public static String formatearTipoTransferencia(String tipo) {
+        if (tipo == null || tipo.isBlank()) {
+            return "";
+        }
+        String norm = normalizarTipoPago(tipo);
+        if (TIPO_PAGO_ACH.equals(norm)) {
+            return "ACH - ABA";
+        }
+        if (TIPO_PAGO_WIRE.equals(norm)) {
+            return "WIRE - SWIFT";
+        }
+        if (TIPO_PAGO_SPID.equals(norm)) {
+            return "SPID - SWIFT";
+        }
+        if (TIPO_PAGO_SPEI.equals(norm)) {
+            return "SPEI - SWIFT";
+        }
+        return tipo.trim();
+    }
+
+    /**
      * Calcula automáticamente el tipo de pago según las reglas de negocio oficiales:
      * 1. Moneda USD + país US                       -> ACH
      * 2. Moneda USD + país MX                       -> SPID
