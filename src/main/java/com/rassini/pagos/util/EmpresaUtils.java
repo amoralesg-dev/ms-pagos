@@ -159,6 +159,14 @@ public final class EmpresaUtils {
         return true;
     }
 
+    // Constantes de Business Unit oficiales
+    public static final String FRENOS = "1000";
+    public static final String OC = "0111";
+    public static final String BYPASA = "0301";
+    public static final String BREAKES = "1850";
+    public static final String PN = "09";
+    public static final String PN99 = "99";
+
     /**
      * Valores permitidos para tipo_pago_seleccionado:
      * - ACH (usa Routing Code ABA)
@@ -223,30 +231,69 @@ public final class EmpresaUtils {
     }
 
     /**
-     * Calcula automáticamente el tipo de pago según las reglas de negocio oficiales:
-     * 1. Moneda USD + país US                       -> ACH
-     * 2. Moneda USD + país MX                       -> SPID
-     * 3. Moneda MXN + país MX                       -> SPEI
-     * 4. Moneda MXN + país distinto de MX      -> WIRE
-     * - Por compatibilidad / default: WIRE
-     *
-     * ABA y SWIFT NO participan en la clasificación.
+     * Calcula automáticamente el tipo de pago según las reglas de negocio específicas por Business Unit:
+     * 1. BRAKES (1850):
+     *    Todos los pagos se calculan automáticamente como ACH (los pocos WIRE se modifican manualmente).
+     * 2. BYPASA (0301), SUSPENSIONES (09), FRENOS (1000) y CORPO (0111):
+     *    - Moneda MXN -> SPEI.
+     *    - Moneda USD:
+     *        * Proveedor MX + Banco MX + SWIFT -> SPID.
+     *        * Proveedor distinto de MX + Banco distinto de MX + SWIFT -> WIRE.
+     *        * Casos mixtos o sin condiciones específicas -> WIRE (fallback seguro existente).
+     *        * No se asigna ACH automáticamente (excepciones se ajustan manualmente).
+     * 3. Negocios fuera del alcance o regla general:
+     *    - Moneda USD + país banco US -> ACH.
+     *    - Moneda USD + país banco MX -> SPID.
+     *    - Moneda MXN + país banco MX -> SPEI.
+     *    - Fallback seguro general: WIRE.
      */
-    public static String calcularTipoPagoAutomatico(String moneda, String pais) {
-        String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
-        String p = pais != null ? pais.trim().toUpperCase(java.util.Locale.ROOT) : "";
+    public static String calcularTipoPagoAutomatico(
+            String empresa,
+            String moneda,
+            String paisProveedor,
+            String paisBanco,
+            boolean tieneSwift) {
 
-        if ("USD".equals(m) && "US".equals(p)) {
+        String buPadre = obtenerEmpresaPadreSeguro(empresa);
+        String m = moneda != null ? moneda.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        String pProv = paisProveedor != null ? paisProveedor.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        String pBanco = paisBanco != null ? paisBanco.trim().toUpperCase(java.util.Locale.ROOT) : "";
+
+        // 1. Regla especial BRAKES (1850)
+        if (BREAKES.equals(buPadre)) {
+            if ("MXN".equals(m)) {
+                return TIPO_PAGO_SPEI;
+            }
             return TIPO_PAGO_ACH;
         }
-        if ("USD".equals(m) && "MX".equals(p)) {
+
+        // 2. Reglas específicas para BYPASA, SUSPENSIONES, FRENOS y CORPO
+        if (BYPASA.equals(buPadre) || PN.equals(buPadre) || FRENOS.equals(buPadre) || OC.equals(buPadre)) {
+            if ("MXN".equals(m)) {
+                return TIPO_PAGO_SPEI;
+            }
+            if ("USD".equals(m)) {
+                if ("MX".equals(pProv) && "MX".equals(pBanco) && tieneSwift) {
+                    return TIPO_PAGO_SPID;
+                }
+                if (!pProv.isEmpty() && !pBanco.isEmpty() && !"MX".equals(pProv) && !"MX".equals(pBanco) && tieneSwift) {
+                    return TIPO_PAGO_WIRE;
+                }
+                // Casos mixtos, sin SWIFT o no definidos -> Fallback seguro WIRE
+                return TIPO_PAGO_WIRE;
+            }
+            return TIPO_PAGO_WIRE;
+        }
+
+        // 3. Reglas generales preexistentes para empresas fuera del alcance
+        if ("USD".equals(m) && "US".equals(pBanco)) {
+            return TIPO_PAGO_ACH;
+        }
+        if ("USD".equals(m) && "MX".equals(pBanco)) {
             return TIPO_PAGO_SPID;
         }
-        if ("MXN".equals(m) && "MX".equals(p)) {
+        if ("MXN".equals(m) && "MX".equals(pBanco)) {
             return TIPO_PAGO_SPEI;
-        }
-        if ("USD".equals(m) && !"MX".equals(p)) {
-            return TIPO_PAGO_WIRE;
         }
         return TIPO_PAGO_WIRE;
     }
@@ -330,21 +377,23 @@ public final class EmpresaUtils {
 
     /**
      * Resuelve de forma centralizada los dos conceptos separados:
-     * 1. Tipo sugerido por regla oficial de negocio (moneda y país).
+     * 1. Tipo sugerido por regla oficial de negocio de la Business Unit.
      * 2. Opciones disponibles por capacidad bancaria (ABA y SWIFT).
      *
      * Valida si el método seleccionado/sugerido cuenta con el routing code requerido,
      * emitiendo la advertencia correspondiente en caso de faltar.
      */
     public static ResolucionTipoPago resolverTipoPago(
+            String empresa,
             String moneda,
-            String pais,
+            String paisProveedor,
+            String paisBanco,
             boolean tieneAba,
             boolean tieneSwift,
             String tipoPersistido) {
 
-        String tipoSugerido = calcularTipoPagoAutomatico(moneda, pais);
-        List<String> opciones = determinarOpcionesTipoPago(moneda, pais, tieneAba, tieneSwift);
+        String tipoSugerido = calcularTipoPagoAutomatico(empresa, moneda, paisProveedor, paisBanco, tieneSwift);
+        List<String> opciones = determinarOpcionesTipoPago(moneda, paisBanco, tieneAba, tieneSwift);
 
         String persistidoNorm = normalizarTipoPago(tipoPersistido);
         String tipoEfectivo = persistidoNorm != null ? persistidoNorm : tipoSugerido;
@@ -386,6 +435,18 @@ public final class EmpresaUtils {
                 ResolucionTipoPago.Clasificacion.VALIDA,
                 "Método " + tipoEfectivo + " válido con datos bancarios completos."
         );
+    }
+
+    /**
+     * Sobrecarga de compatibilidad para resolverTipoPago.
+     */
+    public static ResolucionTipoPago resolverTipoPago(
+            String moneda,
+            String pais,
+            boolean tieneAba,
+            boolean tieneSwift,
+            String tipoPersistido) {
+        return resolverTipoPago(null, moneda, pais, pais, tieneAba, tieneSwift, tipoPersistido);
     }
 
 

@@ -733,17 +733,24 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
 
-                        // Clasificación según reglas oficiales de negocio (USD+US->ACH, USD+MX->SPID, MXN+MX->SPEI, USD+otro->WIRE)
-                        // ABA y SWIFT NO participan en la clasificación.
+                        String paisProveedor = supplier != null ? supplier.getCountryCode() : null;
                         String paisBeneficiario = supplier != null ? supplier.getBankCountry() : null;
-                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
-                        pago.setTipoPagoSeleccionado(tipoCalculado);
-
                         boolean tieneAba = supplier != null && supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
                         boolean tieneSwift = supplier != null && supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
 
-                        ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(
+                                pago.getEmpresa(),
                                 pago.getMoneda(),
+                                paisProveedor,
+                                paisBeneficiario,
+                                tieneSwift
+                        );
+                        pago.setTipoPagoSeleccionado(tipoCalculado);
+
+                        ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                                pago.getEmpresa(),
+                                pago.getMoneda(),
+                                paisProveedor,
                                 paisBeneficiario,
                                 tieneAba,
                                 tieneSwift,
