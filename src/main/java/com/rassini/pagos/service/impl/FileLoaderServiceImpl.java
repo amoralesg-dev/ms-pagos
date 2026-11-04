@@ -696,9 +696,15 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
 
                     // Validar si existe duplicado por referencia (en memoria para el archivo actual y luego en BD)
-                    String refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
-
+                    String refNormalizada = "";
+                    
+                    if(pago.getEmpresa().equals(ConstantsSuppliers.Frenos) || pago.getEmpresa().equals(ConstantsSuppliers.Brakes)){
+                        refNormalizada = pago.getInformacionAdicional() != null ? pago.getInformacionAdicional().trim() : "";
+                    }else{
+                        refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
+                    }
                     boolean existeDuplicado = false;
+
                     if (!refNormalizada.isEmpty()) {
                         existeDuplicado = registrosProcesados.contains(refNormalizada);
 

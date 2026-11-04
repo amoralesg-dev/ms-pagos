@@ -201,7 +201,7 @@ public class TipoPagoYDuplicadosTest {
     }
 
     @Test
-    @DisplayName("CP06 - Fallback historico para Breakes sin ABA")
+    @DisplayName("CP06 - Fallback historico para Brakes sin ABA")
     public void testCP06_FallbackBreakesSinAba() throws Exception {
         PagosArchivo pago = new PagosArchivo();
         pago.setEmpresa("1850");
