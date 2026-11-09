@@ -224,11 +224,15 @@ public class PagoServiceImpl implements PagoService {
             if (supplier != null) {
                 tieneAba = supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
                 tieneSwift = supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
-                paisBeneficiario = supplier.getCountryCode();
+                String paisProveedor = supplier.getCountryCode();
+                String paisBanco = supplier.getBankCountry();
 
                 ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                        entity.getEmpresa(),
+                        entity.getCodigoProveedor(),
                         entity.getMoneda(),
-                        paisBeneficiario,
+                        paisProveedor,
+                        paisBanco,
                         tieneAba,
                         tieneSwift,
                         entity.getTipoPagoSeleccionado()
@@ -244,7 +248,7 @@ public class PagoServiceImpl implements PagoService {
             } else {
                 dto.setTieneAba(false);
                 dto.setTieneSwift(false);
-                dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getMoneda(), null));
+                dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getEmpresa(), entity.getCodigoProveedor(), entity.getMoneda(), null, null, false));
                 dto.setOpcionesTipoPago(Collections.emptyList());
                 dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
                 dto.setTipoTransferencia(EmpresaUtils.formatearTipoTransferencia(entity.getTipoPagoSeleccionado()));
@@ -415,6 +419,12 @@ public class PagoServiceImpl implements PagoService {
                     BuUtils.splitBus(bu));
         }
 
+        return validarPagosPendientes(pendientes);
+    }
+
+    @Override
+    public ValidacionEnvioDTO validarPagosPendientes(List<PagosArchivo> pendientes) {
+
         if (pendientes == null || pendientes.isEmpty()) {
 
             return new ValidacionEnvioDTO(
@@ -470,11 +480,16 @@ public class PagoServiceImpl implements PagoService {
                     if (s != null) {
                         boolean aba = s.getRoutingCodeAba() != null && !s.getRoutingCodeAba().isBlank();
                         boolean swift = s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank();
-                        String pais = s.getCountryCode();
+
+                        String paisProveedor = s.getCountryCode();
+                        String paisBanco = s.getBankCountry();
 
                         ResolucionTipoPago res = EmpresaUtils.resolverTipoPago(
+                                p.getEmpresa(),
+                                p.getCodigoProveedor(),
                                 p.getMoneda(),
-                                pais,
+                                paisProveedor,
+                                paisBanco,
                                 aba,
                                 swift,
                                 p.getTipoPagoSeleccionado()
@@ -487,14 +502,21 @@ public class PagoServiceImpl implements PagoService {
                                 p.getCodigoProveedor(),
                                 p.getEmpresa(),
                                 p.getMoneda(),
-                                pais,
+                                paisBanco,
                                 aba,
                                 swift,
                                 p.getTipoPagoSeleccionado(),
                                 res
                         );
 
-                        String tipoOficial = EmpresaUtils.calcularTipoPagoAutomatico(p.getMoneda(), pais);
+                        String tipoOficial = EmpresaUtils.calcularTipoPagoAutomatico(
+                                p.getEmpresa(),
+                                p.getCodigoProveedor(),
+                                p.getMoneda(),
+                                paisProveedor,
+                                paisBanco,
+                                swift
+                        );
                         String tipoEfectivo = p.getTipoPagoSeleccionado();
                         if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
                             tipoEfectivo = tipoOficial;
@@ -570,6 +592,25 @@ public class PagoServiceImpl implements PagoService {
                                     String.join("\n", validacion.getErrores()));
             }
 
+            return procesarEnvioPagos(pendientes);
+    }
+
+    @Override
+    public int enviarPagosPendientes(List<PagosArchivo> pagos) {
+            if (pagos == null || pagos.isEmpty()) {
+                    return 0;
+            }
+
+            ValidacionEnvioDTO validacion = validarPagosPendientes(pagos);
+            if (!validacion.isPermitido()) {
+                    throw new BusinessException(
+                                    String.join("\n", validacion.getErrores()));
+            }
+
+            return procesarEnvioPagos(pagos);
+    }
+
+    private int procesarEnvioPagos(List<PagosArchivo> pendientes) {
             Map<String, Map<String, List<PagosArchivo>>> grouped = pendientes.stream()
                             .collect(Collectors.groupingBy(
                                             p -> p.getNombreArchivo() == null
@@ -752,7 +793,17 @@ public class PagoServiceImpl implements PagoService {
 
             String tipoEfectivo = pago.getTipoPagoSeleccionado();
             if (tipoEfectivo == null || tipoEfectivo.isBlank()) {
-                tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), supplier != null ? supplier.getCountryCode() : null);
+                String paisProveedor = supplier != null ? supplier.getCountryCode() : null;
+                String paisBanco = supplier != null ? supplier.getBankCountry() : null;
+                boolean tieneSwift = supplier != null && supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
+                tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(
+                        pago.getEmpresa(),
+                        pago.getCodigoProveedor(),
+                        pago.getMoneda(),
+                        paisProveedor,
+                        paisBanco,
+                        tieneSwift
+                );
             }
 
             // Normalizar case de forma insensible para los valores permitidos
