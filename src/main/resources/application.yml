@@ -65,3 +65,8 @@ management:
     export:
       prometheus:
         enabled: true
+
+pagos:
+  automatizacion:
+    bankofam:
+      deal-type-code: PROVEED

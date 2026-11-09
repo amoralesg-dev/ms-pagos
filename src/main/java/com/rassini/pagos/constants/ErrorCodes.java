@@ -63,4 +63,8 @@ public final class ErrorCodes {
     // Genérico
     public static final String ERR999 = "ERR999";
     public static final String ERR046 = "ERR046";
+
+    // Automatización BANKOFAM
+    public static final String ERR048 = "ERR048";
+    public static final String ERR049 = "ERR049";
 }

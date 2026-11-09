@@ -44,3 +44,8 @@ management:
   metrics:
     tags:
       application: ms-pagos
+
+pagos:
+  automatizacion:
+    bankofam:
+      deal-type-code: PROVEED
