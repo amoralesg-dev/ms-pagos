@@ -229,6 +229,7 @@ public class PagoServiceImpl implements PagoService {
 
                 ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
                         entity.getEmpresa(),
+                        entity.getCodigoProveedor(),
                         entity.getMoneda(),
                         paisProveedor,
                         paisBanco,
@@ -247,7 +248,7 @@ public class PagoServiceImpl implements PagoService {
             } else {
                 dto.setTieneAba(false);
                 dto.setTieneSwift(false);
-                dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getEmpresa(), entity.getMoneda(), null, null, false));
+                dto.setTipoSugerido(EmpresaUtils.calcularTipoPagoAutomatico(entity.getEmpresa(), entity.getCodigoProveedor(), entity.getMoneda(), null, null, false));
                 dto.setOpcionesTipoPago(Collections.emptyList());
                 dto.setTipoPagoSeleccionado(entity.getTipoPagoSeleccionado());
                 dto.setTipoTransferencia(EmpresaUtils.formatearTipoTransferencia(entity.getTipoPagoSeleccionado()));
@@ -418,6 +419,12 @@ public class PagoServiceImpl implements PagoService {
                     BuUtils.splitBus(bu));
         }
 
+        return validarPagosPendientes(pendientes);
+    }
+
+    @Override
+    public ValidacionEnvioDTO validarPagosPendientes(List<PagosArchivo> pendientes) {
+
         if (pendientes == null || pendientes.isEmpty()) {
 
             return new ValidacionEnvioDTO(
@@ -479,6 +486,7 @@ public class PagoServiceImpl implements PagoService {
 
                         ResolucionTipoPago res = EmpresaUtils.resolverTipoPago(
                                 p.getEmpresa(),
+                                p.getCodigoProveedor(),
                                 p.getMoneda(),
                                 paisProveedor,
                                 paisBanco,
@@ -503,6 +511,7 @@ public class PagoServiceImpl implements PagoService {
 
                         String tipoOficial = EmpresaUtils.calcularTipoPagoAutomatico(
                                 p.getEmpresa(),
+                                p.getCodigoProveedor(),
                                 p.getMoneda(),
                                 paisProveedor,
                                 paisBanco,
@@ -583,6 +592,25 @@ public class PagoServiceImpl implements PagoService {
                                     String.join("\n", validacion.getErrores()));
             }
 
+            return procesarEnvioPagos(pendientes);
+    }
+
+    @Override
+    public int enviarPagosPendientes(List<PagosArchivo> pagos) {
+            if (pagos == null || pagos.isEmpty()) {
+                    return 0;
+            }
+
+            ValidacionEnvioDTO validacion = validarPagosPendientes(pagos);
+            if (!validacion.isPermitido()) {
+                    throw new BusinessException(
+                                    String.join("\n", validacion.getErrores()));
+            }
+
+            return procesarEnvioPagos(pagos);
+    }
+
+    private int procesarEnvioPagos(List<PagosArchivo> pendientes) {
             Map<String, Map<String, List<PagosArchivo>>> grouped = pendientes.stream()
                             .collect(Collectors.groupingBy(
                                             p -> p.getNombreArchivo() == null
@@ -770,6 +798,7 @@ public class PagoServiceImpl implements PagoService {
                 boolean tieneSwift = supplier != null && supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
                 tipoEfectivo = EmpresaUtils.calcularTipoPagoAutomatico(
                         pago.getEmpresa(),
+                        pago.getCodigoProveedor(),
                         pago.getMoneda(),
                         paisProveedor,
                         paisBanco,

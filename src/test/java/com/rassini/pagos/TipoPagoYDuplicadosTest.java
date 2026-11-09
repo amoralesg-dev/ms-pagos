@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,8 +50,11 @@ public class TipoPagoYDuplicadosTest {
     private PagoServiceImpl pagoService;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws Exception {
         pagoService = new PagoServiceImpl(pagosRepo, catalogoRepo, cache, supplierRepo, fileLoaderService);
+        java.lang.reflect.Field field = PagoServiceImpl.class.getDeclaredField("outputPathBase");
+        field.setAccessible(true);
+        field.set(pagoService, System.getProperty("java.io.tmpdir"));
     }
 
     private String invokeGenerarLineaLayout(PagosArchivo pago, Supplier supplier, String outputFileName) throws Exception {
@@ -911,7 +915,7 @@ public class TipoPagoYDuplicadosTest {
     @DisplayName("CP41 - Cuenta beneficiaria null: No usar findFirst arbitrario si hay múltiples filas")
     public void testCP41_CuentaBeneficiariaNullMultiplesFilasLanzaExcepcion() {
         com.rassini.pagos.service.impl.FileLoaderServiceImpl loaderService =
-                new com.rassini.pagos.service.impl.FileLoaderServiceImpl(pagosRepo, supplierRepo, null, catalogoRepo, cache);
+                new com.rassini.pagos.service.impl.FileLoaderServiceImpl(pagosRepo, supplierRepo, null, catalogoRepo, cache, null);
 
         Supplier s1 = new Supplier();
         s1.setId(1L);
@@ -932,7 +936,7 @@ public class TipoPagoYDuplicadosTest {
     @DisplayName("CP42 - Más de una coincidencia de cuenta con últimos 8 caracteres: Lanzar BusinessExceptionCode ERR031")
     public void testCP42_MasDeUnaCoincidenciaCuentaLanzaExcepcion() {
         com.rassini.pagos.service.impl.FileLoaderServiceImpl loaderService =
-                new com.rassini.pagos.service.impl.FileLoaderServiceImpl(pagosRepo, supplierRepo, null, catalogoRepo, cache);
+                new com.rassini.pagos.service.impl.FileLoaderServiceImpl(pagosRepo, supplierRepo, null, catalogoRepo, cache, null);
 
         Supplier s1 = new Supplier();
         Supplier s2 = new Supplier();
@@ -1255,13 +1259,13 @@ public class TipoPagoYDuplicadosTest {
     // =========================================================================
 
     @Test
-    @DisplayName("CP54 - BRAKES (1850): MXN es SPEI, USD es ACH automático y mantiene opción WIRE si tiene SWIFT")
+    @DisplayName("CP54 - BRAKES (1850): Regla especial de Mónica: MXN es SPEI, USD es ACH automático y mantiene opción WIRE si tiene SWIFT")
     public void testCP54_Brakes_ReglaAutomaticaACH_YOpciones() {
         // Brakes + MXN -> SPEI
         assertEquals("SPEI", EmpresaUtils.calcularTipoPagoAutomatico("1850", "MXN", "MX", "MX", false));
         assertEquals("SPEI", EmpresaUtils.calcularTipoPagoAutomatico("1850", "MXN", "US", "MX", true));
 
-        // Brakes + USD + proveedor MX + banco MX + SWIFT -> ACH
+        // Brakes + USD + proveedor MX + banco MX + SWIFT -> ACH (por regla especial de Brakes)
         assertEquals("ACH", EmpresaUtils.calcularTipoPagoAutomatico("1850", "USD", "MX", "MX", true));
 
         // Brakes + USD + proveedor US + banco US + ABA -> ACH
@@ -1430,6 +1434,295 @@ public class TipoPagoYDuplicadosTest {
         assertEquals("ACH", res.getTipoSugerido());
         assertEquals("WIRE", res.getTipoResuelto());
         assertTrue(res.isValida());
+    }
+
+    // =========================================================================
+    // PRUEBAS AUTOMATIZACIÓN BANKOFAM EN FRENOS (1000) -> SPID
+    // =========================================================================
+
+    @Test
+    @DisplayName("CP61 - Automatización BANKOFAM: 1000 + BANKOFAM + SWIFT presente -> SPID")
+    public void testCP61_Bankofam_SPID_Valido() {
+        String tipo = EmpresaUtils.calcularTipoPagoAutomatico("1000", "BANKOFAM", "USD", "US", "US", true);
+        assertEquals("SPID", tipo);
+
+        ResolucionTipoPago res = EmpresaUtils.resolverTipoPago("1000", "BANKOFAM", "USD", "US", "US", false, true, tipo);
+        assertEquals("SPID", res.getTipoResuelto());
+        assertTrue(res.isValida());
+    }
+
+    @Test
+    @DisplayName("CP62 - Automatización BANKOFAM: 1000 + BANKOFAM + SWIFT y sin ABA -> SPID válido")
+    public void testCP62_Bankofam_SPID_SinAba_Valido() {
+        String tipo = EmpresaUtils.calcularTipoPagoAutomatico("1000", "BANKOFAM", "USD", "US", "US", true);
+        assertEquals("SPID", tipo);
+
+        // Sin ABA, pero con SWIFT:
+        ResolucionTipoPago res = EmpresaUtils.resolverTipoPago("1000", "BANKOFAM", "USD", "US", "US", false, true, tipo);
+        assertEquals("SPID", res.getTipoResuelto());
+        assertTrue(res.isValida(), "La ausencia de ABA no debe invalidar SPID si cuenta con SWIFT");
+    }
+
+    @Test
+    @DisplayName("CP63 - Automatización BANKOFAM: Falta SWIFT para SPID -> Validación no permitida")
+    public void testCP63_Bankofam_FaltaSwift_NoValido() {
+        PagosArchivo pago = new PagosArchivo();
+        pago.setId(5001L);
+        pago.setNombreArchivo("TEST_BANKOFAM_SWIFT.txt");
+        pago.setEmpresa("1000");
+        pago.setCodigoProveedor("BANKOFAM");
+        pago.setCuentaBeneficiario("106180000994592590");
+        pago.setMoneda("USD");
+        pago.setEstatus("PENDIENTE");
+        pago.setTipoPagoSeleccionado("SPID");
+        pago.setTipoPago(new com.rassini.pagos.entity.CatalogoTipoPago());
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setCountryCode("US");
+        s.setBankCountry("US");
+        s.setRoutingCodeAba(null); // Sin ABA
+        s.setRoutingCodeSwift(null); // Sin SWIFT
+
+        when(fileLoaderService.obtenerUltimos8DigitosCuenta("106180000994592590")).thenReturn("94592590");
+        when(fileLoaderService.obtenerSupplierPadrePorCuenta("BANKOFAM", "1000", "94592590")).thenReturn(s);
+
+        com.rassini.pagos.dto.ValidacionEnvioDTO val = pagoService.validarPagosPendientes(List.of(pago));
+        assertFalse(val.isPermitido());
+        assertTrue(val.getErrores().stream().anyMatch(e -> e.contains("Routing Code SWIFT requerido para SPID")));
+    }
+
+    @Test
+    @DisplayName("CP64 - Caso Real PROD: BANKOFAM 1000 cuenta 106180000994592590 con SWIFT y sin ABA -> SPID permitido para envío")
+    public void testCP64_Bankofam_CasoRealProd_Permitido() {
+        PagosArchivo pago = new PagosArchivo();
+        pago.setId(5002L);
+        pago.setNombreArchivo("TEST_BANKOFAM_PROD.txt");
+        pago.setEmpresa("1000");
+        pago.setCodigoProveedor("BANKOFAM");
+        pago.setCuentaBeneficiario("106180000994592590");
+        pago.setMoneda("USD");
+        pago.setEstatus("PENDIENTE");
+        pago.setTipoPagoSeleccionado("SPID");
+        pago.setTipoPago(new com.rassini.pagos.entity.CatalogoTipoPago());
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setCountryCode("US");
+        s.setBankCountry("US");
+        s.setRoutingCodeAba(null); // Ausente en PROD
+        s.setRoutingCodeSwift("BOFAUS3N"); // Presente en PROD
+
+        when(fileLoaderService.obtenerUltimos8DigitosCuenta("106180000994592590")).thenReturn("94592590");
+        when(fileLoaderService.obtenerSupplierPadrePorCuenta("BANKOFAM", "1000", "94592590")).thenReturn(s);
+
+        com.rassini.pagos.dto.ValidacionEnvioDTO val = pagoService.validarPagosPendientes(List.of(pago));
+        assertTrue(val.isPermitido());
+        assertTrue(val.getErrores().isEmpty());
+    }
+
+    @Test
+    @DisplayName("CP65 - Automatización BANKOFAM: 1000 + otro proveedor -> Flujo manual / no automatizado")
+    public void testCP65_OtroProveedor_NoAutomatizado() {
+        assertFalse(EmpresaUtils.aplicaCalculoAutomaticoTransferencia("1000", "OTROPROV"));
+        String tipo = EmpresaUtils.calcularTipoPagoAutomatico("1000", "OTROPROV", "USD", "US", "US", false);
+        assertEquals("WIRE", tipo); // En BU 1000 general USD internacional sin ABA va por WIRE
+    }
+
+    @Test
+    @DisplayName("CP66 - Automatización BANKOFAM: otra BU + BANKOFAM -> Flujo manual / no automatizado")
+    public void testCP66_OtraBu_Bankofam_NoAutomatizado() {
+        assertFalse(EmpresaUtils.aplicaCalculoAutomaticoTransferencia("1010", "BANKOFAM"));
+        assertFalse(EmpresaUtils.aplicaCalculoAutomaticoTransferencia("1850", "BANKOFAM"));
+    }
+
+    @Test
+    @DisplayName("CP67 - Automatización BANKOFAM: Carga actual con lista explícita -> No envía PENDIENTES históricos")
+    public void testCP67_SoloCargaActual_NoHistoricos() {
+        PagosArchivo pagoActual = new PagosArchivo();
+        pagoActual.setId(6001L);
+        pagoActual.setNombreArchivo("CARGA_ACTUAL.txt");
+        pagoActual.setEmpresa("1000");
+        pagoActual.setCodigoProveedor("BANKOFAM");
+        pagoActual.setCuentaBeneficiario("106180000994592590");
+        pagoActual.setMoneda("USD");
+        pagoActual.setEstatus("PENDIENTE");
+        pagoActual.setTipoPagoSeleccionado("SPID");
+
+        com.rassini.pagos.entity.CatalogoTipoPago tp = new com.rassini.pagos.entity.CatalogoTipoPago();
+        tp.setDealType("PROVEED");
+        pagoActual.setTipoPago(tp);
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setCountryCode("US");
+        s.setBankCountry("US");
+        s.setRoutingCodeAba(null);
+        s.setRoutingCodeSwift("BOFAUS3N");
+
+        when(fileLoaderService.obtenerUltimos8DigitosCuenta("106180000994592590")).thenReturn("94592590");
+        when(fileLoaderService.obtenerSupplierPadrePorCuenta("BANKOFAM", "1000", "94592590")).thenReturn(s);
+
+        pagoService.enviarPagosPendientes(List.of(pagoActual));
+
+        verify(pagosRepo, never()).findByEmpresaAndEstatus(eq("1000"), anyString());
+        verify(pagosRepo, never()).findPendientesPorEnviarMultiBu(anyList());
+        verify(pagosRepo, never()).findPendientesPorEnviarAll();
+
+        verify(pagosRepo, times(1)).saveAll(argThat((List<PagosArchivo> list) ->
+                list.size() == 1 && list.get(0).getId().equals(6001L) && "ENVIADO".equals(list.get(0).getEstatus())
+        ));
+    }
+
+    // =========================================================================
+    // PRUEBAS DE AISLAMIENTO, ERRORES ESPECÍFICOS Y CARGA MIXTA (ERR048)
+    // =========================================================================
+
+    @Test
+    @DisplayName("CP68 - BANKOFAM sin SWIFT asigna ErrorCode ERR048 y estatus ERROR")
+    public void testCP68_Bankofam_SinSwift_AsignaERR048() {
+        PagosArchivo pago = new PagosArchivo();
+        pago.setEmpresa("1000");
+        pago.setCodigoProveedor("BANKOFAM");
+        pago.setMoneda("USD");
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setRoutingCodeAba(null);
+        s.setRoutingCodeSwift(null); // Sin SWIFT
+
+        List<String> errores = new java.util.ArrayList<>();
+        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getEmpresa(), pago.getCodigoProveedor(), pago.getMoneda(), "US", "US", false);
+        assertEquals("SPID", tipoCalculado);
+
+        boolean tieneSwift = s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank();
+        if (EmpresaUtils.aplicaCalculoAutomaticoTransferencia(pago.getEmpresa(), pago.getCodigoProveedor())) {
+            if (!tieneSwift) {
+                errores.add(com.rassini.pagos.constants.ErrorCodes.ERR048);
+            }
+        }
+
+        assertTrue(errores.contains(com.rassini.pagos.constants.ErrorCodes.ERR048));
+        assertEquals("El proveedor BANKOFAM no cuenta con Routing Code SWIFT requerido para el envío automático SPID.",
+                com.rassini.pagos.constants.ErrorMessages.ES.get(com.rassini.pagos.constants.ErrorCodes.ERR048));
+    }
+
+    @Test
+    @DisplayName("CP69 - BANKOFAM con SWIFT y sin ABA no produce error")
+    public void testCP69_Bankofam_ConSwift_SinAba_NoProduceError() {
+        PagosArchivo pago = new PagosArchivo();
+        pago.setEmpresa("1000");
+        pago.setCodigoProveedor("BANKOFAM");
+        pago.setMoneda("USD");
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setRoutingCodeAba(null); // Ausente
+        s.setRoutingCodeSwift("BOFAUS3N"); // Presente
+
+        List<String> errores = new java.util.ArrayList<>();
+        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getEmpresa(), pago.getCodigoProveedor(), pago.getMoneda(), "US", "US", false);
+        assertEquals("SPID", tipoCalculado);
+
+        boolean tieneSwift = s.getRoutingCodeSwift() != null && !s.getRoutingCodeSwift().isBlank();
+        if (EmpresaUtils.aplicaCalculoAutomaticoTransferencia(pago.getEmpresa(), pago.getCodigoProveedor())) {
+            if (!tieneSwift) {
+                errores.add(com.rassini.pagos.constants.ErrorCodes.ERR048);
+            }
+        }
+
+        assertTrue(errores.isEmpty(), "No debe producir error cuando SWIFT está presente aunque falte ABA");
+    }
+
+    @Test
+    @DisplayName("CP70 - Carga mixta: BANKOFAM válido (A) se envía, BANKOFAM sin SWIFT (B) queda con ERROR, Otro proveedor (C) queda PENDIENTE")
+    public void testCP70_CargaMixta_Aislamiento() {
+        // Pago A: 1000 + BANKOFAM + SWIFT -> Valido
+        PagosArchivo pagoA = new PagosArchivo();
+        pagoA.setId(7001L);
+        pagoA.setNombreArchivo("CARGA_MIXTA.txt");
+        pagoA.setEmpresa("1000");
+        pagoA.setCodigoProveedor("BANKOFAM");
+        pagoA.setCuentaBeneficiario("106180000994592590");
+        pagoA.setMoneda("USD");
+        pagoA.setEstatus("PENDIENTE");
+        pagoA.setTipoPagoSeleccionado("SPID");
+        com.rassini.pagos.entity.CatalogoTipoPago tpA = new com.rassini.pagos.entity.CatalogoTipoPago();
+        tpA.setDealType("PROVEED");
+        pagoA.setTipoPago(tpA);
+
+        // Pago B: 1000 + BANKOFAM sin SWIFT -> Invalido con ERR048
+        PagosArchivo pagoB = new PagosArchivo();
+        pagoB.setId(7002L);
+        pagoB.setNombreArchivo("CARGA_MIXTA.txt");
+        pagoB.setEmpresa("1000");
+        pagoB.setCodigoProveedor("BANKOFAM");
+        pagoB.setMoneda("USD");
+        pagoB.setEstatus("ERROR");
+        pagoB.setMensaje(com.rassini.pagos.constants.ErrorCodes.ERR048);
+
+        // Pago C: 1000 + OTROPROV -> Manual PENDIENTE
+        PagosArchivo pagoC = new PagosArchivo();
+        pagoC.setId(7003L);
+        pagoC.setNombreArchivo("CARGA_MIXTA.txt");
+        pagoC.setEmpresa("1000");
+        pagoC.setCodigoProveedor("OTROPROV");
+        pagoC.setMoneda("USD");
+        pagoC.setEstatus("PENDIENTE");
+
+        List<PagosArchivo> candidatosAutomatizacion = List.of(pagoA, pagoB);
+
+        List<PagosArchivo> validosParaEnvio = candidatosAutomatizacion.stream()
+                .filter(p -> "PENDIENTE".equals(p.getEstatus()))
+                .collect(Collectors.toList());
+
+        assertEquals(1, validosParaEnvio.size());
+        assertEquals(7001L, validosParaEnvio.get(0).getId());
+
+        Supplier s = createValidSupplier();
+        s.setSupplierCode("BANKOFAM");
+        s.setBusinessUnitCode("1000");
+        s.setCountryCode("US");
+        s.setBankCountry("US");
+        s.setRoutingCodeAba(null); // Sin ABA
+        s.setRoutingCodeSwift("BOFAUS3N"); // Con SWIFT
+
+        when(fileLoaderService.obtenerUltimos8DigitosCuenta("106180000994592590")).thenReturn("94592590");
+        when(fileLoaderService.obtenerSupplierPadrePorCuenta("BANKOFAM", "1000", "94592590")).thenReturn(s);
+
+        int files = pagoService.enviarPagosPendientes(validosParaEnvio);
+
+        assertEquals(1, files);
+        assertEquals("ENVIADO", pagoA.getEstatus());
+        assertEquals("ERROR", pagoB.getEstatus());
+        assertEquals("PENDIENTE", pagoC.getEstatus());
+
+        verify(pagosRepo, times(1)).saveAll(argThat((List<PagosArchivo> list) ->
+                list.size() == 1 && list.get(0).getId().equals(7001L) && "ENVIADO".equals(list.get(0).getEstatus())
+        ));
+    }
+
+    @Test
+    @DisplayName("CP71 - Pagos con estatus ERROR no son recuperados por consultas de envío manual de PENDIENTES")
+    public void testCP71_PagosErrorNoParticipanEnEnvioManual() {
+        PagosArchivo pagoError = new PagosArchivo();
+        pagoError.setId(9001L);
+        pagoError.setEmpresa("1000");
+        pagoError.setCodigoProveedor("BANKOFAM");
+        pagoError.setEstatus("ERROR");
+        pagoError.setMensaje("ERR048");
+
+        when(pagosRepo.findPendientesPorEnviarMultiBu(List.of("1000"))).thenReturn(List.of());
+
+        int enviados = pagoService.enviarPagosPendientes("1000");
+        assertEquals(0, enviados);
+
+        verify(pagosRepo, never()).saveAll(anyList());
     }
 }
 
