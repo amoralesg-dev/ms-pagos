@@ -632,6 +632,14 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         empresaPadre,
                         ultimos8);
 
+        if(ultimos8.matches(".*[a-zA-Z].*")){
+            suppliers = supplierRepository
+            .findByCodigoProveedorAndEmpresaAndIBANStartsWith(
+                codigoProveedor, 
+                empresaPadre, 
+                ultimos8);
+        }
+        
         if (suppliers.isEmpty()) {
             throw new BusinessExceptionCode(
                     ErrorCodes.ERR030,
@@ -659,9 +667,12 @@ public class FileLoaderServiceImpl implements FileLoaderService {
         String cuenta = cuentaBeneficiario.trim();
 
         if (cuenta.length() >= 8) {
-            return cuenta.substring(cuenta.length() - 8);
+            if(cuenta.matches(".*[a-zA-Z].*")){
+                return cuenta;
+            }else{
+                return cuenta.substring(cuenta.length() - 8);
+            }
         }
-
         return cuenta;
     }
     private void procesarArchivo(File archivo) {
