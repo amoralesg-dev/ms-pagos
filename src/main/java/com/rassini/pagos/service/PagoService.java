@@ -10,6 +10,7 @@ import com.rassini.pagos.dto.ClasificarPagoItem;
 import com.rassini.pagos.dto.PagoPendienteDTO;
 import com.rassini.pagos.dto.ReferenciaManualItemDTO;
 import com.rassini.pagos.dto.ValidacionEnvioDTO;
+import com.rassini.pagos.entity.PagosArchivo;
 
 public interface PagoService {
 
@@ -36,7 +37,11 @@ public interface PagoService {
 
     ValidacionEnvioDTO  validarPagosPendientes(String bu);
 
+    ValidacionEnvioDTO  validarPagosPendientes(List<PagosArchivo> pagos);
+
     int enviarPagosPendientes(String bu);
+
+    int enviarPagosPendientes(List<PagosArchivo> pagos);
 
     void rechazarPago(Long id);
 

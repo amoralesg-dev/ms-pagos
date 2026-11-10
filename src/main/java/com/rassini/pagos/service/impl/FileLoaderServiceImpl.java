@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import com.rassini.pagos.constants.ErrorCodes;
@@ -33,6 +34,7 @@ import com.rassini.pagos.repository.PagosArchivoRepository;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.service.EmpresaTipoPagoCache;
 import com.rassini.pagos.service.FileLoaderService;
+import com.rassini.pagos.service.PagoService;
 import com.rassini.pagos.util.ConstantsSuppliers;
 import com.rassini.pagos.util.EmpresaUtils;
 import com.rassini.pagos.util.ResolucionTipoPago;
@@ -49,20 +51,26 @@ public class FileLoaderServiceImpl implements FileLoaderService {
     private final EquivalencesDealTypeRepository equivalencesDealTypeRepository;
     private final CatalogoTipoPagoRepository catalogoTipoPagoRepository;
     private final EmpresaTipoPagoCache empresaTipoPagoCache;
+    private final PagoService pagoService;
 
     @Value("${loader.path}")
     private String rutaCarpeta;
+
+    @Value("${pagos.automatizacion.bankofam.deal-type-code:PROVEED}")
+    private String dealTypeCodeBankofam;
 
 
     public FileLoaderServiceImpl(PagosArchivoRepository repository, SupplierRepository supplierRepository, 
         EquivalencesDealTypeRepository equivalencesDealTypeRepository, 
         CatalogoTipoPagoRepository catalogoTipoPagoRepository, 
-        EmpresaTipoPagoCache empresaTipoPagoCache) {
+        EmpresaTipoPagoCache empresaTipoPagoCache,
+        @Lazy PagoService pagoService) {
         this.repository = repository;
         this.supplierRepository = supplierRepository;
         this.equivalencesDealTypeRepository = equivalencesDealTypeRepository;
         this.catalogoTipoPagoRepository = catalogoTipoPagoRepository;
         this.empresaTipoPagoCache = empresaTipoPagoCache;
+        this.pagoService = pagoService;
     }
 
     @Override
@@ -679,6 +687,7 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
         List<PagosArchivo> batch = new ArrayList<>();
         Set<String> registrosProcesados = new HashSet<>();
+        List<PagosArchivo> pagosAutomatizacionCargaActual = new ArrayList<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
 
@@ -708,13 +717,14 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
                     // Validar si existe duplicado por referencia (en memoria para el archivo actual y luego en BD)
                     String refNormalizada = "";
-                    if(pago.getEmpresa() != "1000" || pago.getEmpresa() != "1850"){
-                        refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
-                    }else{
+                    
+                    if(pago.getEmpresa().equals(ConstantsSuppliers.Frenos) || pago.getEmpresa().equals(ConstantsSuppliers.Brakes)){
                         refNormalizada = pago.getInformacionAdicional() != null ? pago.getInformacionAdicional().trim() : "";
+                    }else{
+                        refNormalizada = pago.getReferencia() != null ? pago.getReferencia().trim() : "";
                     }
-
                     boolean existeDuplicado = false;
+
                     if (!refNormalizada.isEmpty()) {
                         existeDuplicado = registrosProcesados.contains(refNormalizada);
 
@@ -749,22 +759,53 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                         pago.setMensaje(null);
                         pago.setEstatus("PENDIENTE");
 
-                        // Clasificación según reglas oficiales de negocio (USD+US->ACH, USD+MX->SPID, MXN+MX->SPEI, USD+otro->WIRE)
-                        // ABA y SWIFT NO participan en la clasificación.
+                        String paisProveedor = supplier != null ? supplier.getCountryCode() : null;
                         String paisBeneficiario = supplier != null ? supplier.getBankCountry() : null;
-                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(pago.getMoneda(), paisBeneficiario);
-                        pago.setTipoPagoSeleccionado(tipoCalculado);
-
                         boolean tieneAba = supplier != null && supplier.getRoutingCodeAba() != null && !supplier.getRoutingCodeAba().isBlank();
                         boolean tieneSwift = supplier != null && supplier.getRoutingCodeSwift() != null && !supplier.getRoutingCodeSwift().isBlank();
 
-                        ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                        String tipoCalculado = EmpresaUtils.calcularTipoPagoAutomatico(
+                                pago.getEmpresa(),
+                                pago.getCodigoProveedor(),
                                 pago.getMoneda(),
+                                paisProveedor,
+                                paisBeneficiario,
+                                tieneSwift
+                        );
+                        pago.setTipoPagoSeleccionado(tipoCalculado);
+
+                        ResolucionTipoPago resolucion = EmpresaUtils.resolverTipoPago(
+                                pago.getEmpresa(),
+                                pago.getCodigoProveedor(),
+                                pago.getMoneda(),
+                                paisProveedor,
                                 paisBeneficiario,
                                 tieneAba,
                                 tieneSwift,
                                 tipoCalculado
                         );
+
+                        // Automatización BANKOFAM (1000 + BANKOFAM -> SPID):
+                        // 1. Requiere obligatoriamente SWIFT; si falta -> ERR048 y estatus ERROR.
+                        // 2. Requiere resolver DealType configurado desde catálogo; si no se resuelve -> ERR049 y estatus ERROR.
+                        if (EmpresaUtils.aplicaCalculoAutomaticoTransferencia(pago.getEmpresa(), pago.getCodigoProveedor())) {
+                            if (!tieneSwift) {
+                                agregarError(errores, error(ErrorCodes.ERR048, "El proveedor BANKOFAM no cuenta con Routing Code SWIFT requerido para el envío automático SPID."));
+                            }
+
+                            String codigoConfigurado = dealTypeCodeBankofam != null ? dealTypeCodeBankofam.trim().toUpperCase(java.util.Locale.ROOT) : "";
+                            CatalogoTipoPago tipoPagoBankofam = (!codigoConfigurado.isEmpty() && catalogoTipoPagoMap != null) ? catalogoTipoPagoMap.get(codigoConfigurado) : null;
+                            if (tipoPagoBankofam != null) {
+                                pago.setTipoPago(tipoPagoBankofam);
+                            } else {
+                                agregarError(errores, error(ErrorCodes.ERR049, "No fue posible resolver el DealType configurado para la automatización BANKOFAM."));
+                            }
+                        }
+
+                        if (!errores.isEmpty()) {
+                            pago.setMensaje(String.join(" | ", errores));
+                            pago.setEstatus("ERROR");
+                        }
 
                         EmpresaUtils.logResolucion(
                                 log,
@@ -782,6 +823,10 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                     }
 
                     batch.add(pago);
+                    if ("PENDIENTE".equals(pago.getEstatus())
+                            && EmpresaUtils.aplicaCalculoAutomaticoTransferencia(pago.getEmpresa(), pago.getCodigoProveedor())) {
+                        pagosAutomatizacionCargaActual.add(pago);
+                    }
 
                     if (batch.size() == 500) {
                         repository.saveAll(batch);
@@ -802,6 +847,28 @@ public class FileLoaderServiceImpl implements FileLoaderService {
                 for (PagosArchivo pGuardado : batch) {
                     log.info("[RESOLUCION-TIPO-PAGO-PERSISTIDO] idPago={} archivo={} proveedor={} empresa={} tipoPersistido={}",
                             pGuardado.getId(), pGuardado.getNombreArchivo(), pGuardado.getCodigoProveedor(), pGuardado.getEmpresa(), pGuardado.getTipoPagoSeleccionado());
+                }
+            }
+
+            if (!pagosAutomatizacionCargaActual.isEmpty() && pagoService != null) {
+                List<PagosArchivo> pagosAutomatizacionValidos = pagosAutomatizacionCargaActual.stream()
+                        .filter(p -> "PENDIENTE".equals(p.getEstatus()))
+                        .collect(Collectors.toList());
+
+                if (!pagosAutomatizacionValidos.isEmpty()) {
+                    log.info("Iniciando envío automático para {} pagos válidos de la carga actual que aplican automatización (1000 + BANKOFAM)",
+                            pagosAutomatizacionValidos.size());
+                    try {
+                        int enviados = pagoService.enviarPagosPendientes(pagosAutomatizacionValidos);
+                        log.info("Envío automático finalizado exitosamente para archivo {}. Archivos generados: {}",
+                                archivo.getName(), enviados);
+                    } catch (Exception e) {
+                        log.error("Error durante el envío automático de pagos del archivo {}: {}",
+                                archivo.getName(), e.getMessage(), e);
+                    }
+                } else {
+                    log.warn("Se detectaron pagos para automatización BANKOFAM en archivo {} pero ninguno fue válido para envío automático.",
+                            archivo.getName());
                 }
             }
 
@@ -840,16 +907,38 @@ public class FileLoaderServiceImpl implements FileLoaderService {
 
         
         try {
-            log.info(
-                "Search supplierPadre for key cp {} : bu {}",
-                pago.getCodigoProveedor(),
-                pago.getEmpresa()
-            );
+            Supplier supplierPadre = null;
+            if (pago.getCodigoProveedor() != null && !pago.getCodigoProveedor().isBlank()
+                    && pago.getCuentaBeneficiario() != null && !pago.getCuentaBeneficiario().isBlank()) {
+                try {
+                    String ultimos8 = obtenerUltimos8DigitosCuenta(pago.getCuentaBeneficiario());
+                    log.info(
+                        "Search supplierPadre por cuenta for key cp {} : bu {} : u8 {}",
+                        pago.getCodigoProveedor(),
+                        pago.getEmpresa(),
+                        ultimos8
+                    );
+                    supplierPadre = obtenerSupplierPadrePorCuenta(
+                        pago.getCodigoProveedor(),
+                        pago.getEmpresa(),
+                        ultimos8
+                    );
+                } catch (Exception e) {
+                    log.debug("No se pudo resolver supplierPadre por cuenta para asignacion de tipo pago: {}", e.getMessage());
+                }
+            }
 
-            Supplier supplierPadre = obtenerSupplierPadre(
-                pago.getCodigoProveedor(),
-                pago.getEmpresa()
-            );
+            if (supplierPadre == null && pago.getCodigoProveedor() != null && !pago.getCodigoProveedor().isBlank()) {
+                log.info(
+                    "Search supplierPadre for key cp {} : bu {}",
+                    pago.getCodigoProveedor(),
+                    pago.getEmpresa()
+                );
+                supplierPadre = obtenerSupplierPadre(
+                    pago.getCodigoProveedor(),
+                    pago.getEmpresa()
+                );
+            }
 
             if (supplierPadre == null) {
                 return;

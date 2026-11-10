@@ -58,7 +58,9 @@ public final class ErrorMessages {
 
         Map.entry(ErrorCodes.ERR044, "Registro duplicado en archivo o base de datos"),
         Map.entry(ErrorCodes.ERR045, "No existe supplier para el código proveedor"),
-        Map.entry(ErrorCodes.ERR046, "No existe empresa padre para la  bussines unit")
+        Map.entry(ErrorCodes.ERR046, "No existe empresa padre para la  bussines unit"),
+        Map.entry(ErrorCodes.ERR048, "El proveedor BANKOFAM no cuenta con Routing Code SWIFT requerido para el envío automático SPID."),
+        Map.entry(ErrorCodes.ERR049, "No fue posible resolver el DealType configurado para la automatización BANKOFAM.")
 
     );
 }
