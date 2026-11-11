@@ -86,6 +86,7 @@ class SupplierHistoryServiceImplTest {
 
         SupplierSummaryDTO dto = service.buscarProveedores(null, " 1001 ", "", null, pr).getContent().get(0);
         assertEquals("************1234", dto.getAccountNumber());
+        assertEquals("USD", dto.getBankCurrency());
         assertEquals(3L, dto.getVersionCount());
         assertEquals("BANK NEW", dto.getBankName());
     }
@@ -128,15 +129,15 @@ class SupplierHistoryServiceImplTest {
     }
 
     @Test
-    void detalle_diffYEnmascarado() {
+    void detalle_diffYValoresCompletos() {
         when(supplierRepo.findById(10L)).thenReturn(Optional.of(supplier()));
         when(versionRepo.findBySupplierIdAndVersionNumber(10L, 1)).thenReturn(Optional.of(version(1)));
 
         SupplierVersionDetailDTO d = service.obtenerDetalleVersion(10L, 1);
         assertEquals("BANK OLD", d.getVersionBank().getBeneficiaryBankName());
         assertEquals("BANK NEW", d.getCurrentBank().getBeneficiaryBankName());
-        assertEquals("************1234", d.getVersionBank().getAccountNumber());
-        assertEquals("*****0001", d.getCurrentBank().getRoutingCodeAba());
+        assertEquals("TESTACCT00001234", d.getVersionBank().getAccountNumber());
+        assertEquals("000000001", d.getCurrentBank().getRoutingCodeAba());
         assertEquals(12, d.getDiffs().size());
         SupplierFieldDiffDTO bank = d.getDiffs().stream().filter(x -> x.getField().equals("beneficiary_bank_name")).findFirst().orElseThrow();
         assertTrue(bank.isDiffersFromCurrent());

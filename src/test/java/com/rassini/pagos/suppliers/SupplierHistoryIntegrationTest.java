@@ -43,6 +43,7 @@ class SupplierHistoryIntegrationTest {
         s.setBusinessUnitCode("0111");
         s.setAccountNumber("TESTACCT00009999");
         s.setBeneficiaryBankName("BANCO NUEVO");
+        s.setBankCurrency("MXN");
         s.setRoutingCodeSwift("NEWSWIFTXX");
         supplierRepository.save(s);
         supplierId = s.getId();
@@ -60,6 +61,7 @@ class SupplierHistoryIntegrationTest {
         mockMvc.perform(get("/suppliers").param("supplierName", "prueba"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].versionCount").value(3))
+                .andExpect(jsonPath("$.content[0].bankCurrency").value("MXN"))
                 .andExpect(jsonPath("$.content[0].accountNumber").value("************9999"));
 
         mockMvc.perform(get("/suppliers/" + supplierId + "/versions").param("size", "2"))
@@ -73,7 +75,7 @@ class SupplierHistoryIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.versionBank.beneficiaryBankName").value("BANCO V2"))
                 .andExpect(jsonPath("$.currentBank.beneficiaryBankName").value("BANCO NUEVO"))
-                .andExpect(jsonPath("$.versionBank.accountNumber").value("************9999"))
+                .andExpect(jsonPath("$.versionBank.accountNumber").value("TESTACCT00009999"))
                 .andExpect(jsonPath("$.diffs[?(@.field=='routing_code_swift')].differsFromCurrent").value(true));
 
         mockMvc.perform(get("/suppliers/" + supplierId + "/versions/9")).andExpect(status().isNotFound());
