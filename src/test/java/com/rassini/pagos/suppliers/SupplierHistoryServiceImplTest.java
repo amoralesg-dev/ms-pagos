@@ -79,12 +79,12 @@ class SupplierHistoryServiceImplTest {
     @Test
     void buscarProveedores_enmascaraYCuentaVersiones() {
         PageRequest pr = PageRequest.of(0, 20);
-        when(supplierRepo.buscarParaHistorial(null, "1001", null, null, pr))
+        when(supplierRepo.buscarParaHistorial("1001", "1001", null, null, pr))
                 .thenReturn(new PageImpl<>(List.of(supplier()), pr, 1));
         when(versionRepo.countBySupplierIds(anyCollection()))
                 .thenReturn(List.<Object[]>of(new Object[] { 10L, 3L }));
 
-        SupplierSummaryDTO dto = service.buscarProveedores(null, " 1001 ", "", null, pr).getContent().get(0);
+        SupplierSummaryDTO dto = service.buscarProveedores(" 1001 ", " 1001 ", "", null, pr).getContent().get(0);
         assertEquals("************1234", dto.getAccountNumber());
         assertEquals("USD", dto.getBankCurrency());
         assertEquals(3L, dto.getVersionCount());

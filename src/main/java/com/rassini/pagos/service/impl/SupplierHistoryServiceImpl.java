@@ -47,9 +47,9 @@ public class SupplierHistoryServiceImpl implements SupplierHistoryService {
     private final SupplierVersionRepository versionRepository;
 
     @Override
-    public Page<SupplierSummaryDTO> buscarProveedores(Long supplierId, String supplierCode, String supplierName,
+    public Page<SupplierSummaryDTO> buscarProveedores(String erpIdQad, String supplierCode, String supplierName,
             String taxId, Pageable pageable) {
-        Page<Supplier> page = supplierRepository.buscarParaHistorial(supplierId, blankToNull(supplierCode),
+        Page<Supplier> page = supplierRepository.buscarParaHistorial(blankToNull(erpIdQad), blankToNull(supplierCode),
                 blankToNull(supplierName), blankToNull(taxId), pageable);
 
         Map<Long, Long> counts = new HashMap<>();

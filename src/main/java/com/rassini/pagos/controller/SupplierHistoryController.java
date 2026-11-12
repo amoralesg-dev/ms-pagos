@@ -48,7 +48,7 @@ public class SupplierHistoryController {
 
     @GetMapping
     public ResponseEntity<Page<SupplierSummaryDTO>> buscarProveedores(
-            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) String erpIdQad,
             @RequestParam(required = false) String supplierCode,
             @RequestParam(required = false) String supplierName,
             @RequestParam(required = false) String taxId,
@@ -57,7 +57,7 @@ public class SupplierHistoryController {
             @RequestParam(defaultValue = "supplierName") String sortField,
             @RequestParam(defaultValue = "ASC") String sortOrder) {
         Pageable pageable = buildPageable(page, size, sortField, sortOrder, SUPPLIER_SORT_FIELDS);
-        return ResponseEntity.ok(service.buscarProveedores(supplierId, supplierCode, supplierName, taxId, pageable));
+        return ResponseEntity.ok(service.buscarProveedores(erpIdQad, supplierCode, supplierName, taxId, pageable));
     }
 
     @GetMapping("/{supplierId}/versions")
