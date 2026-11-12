@@ -10,7 +10,7 @@ import com.rassini.pagos.dto.SupplierVersionItemDTO;
 
 public interface SupplierHistoryService {
 
-    Page<SupplierSummaryDTO> buscarProveedores(Long supplierId, String supplierCode, String supplierName,
+    Page<SupplierSummaryDTO> buscarProveedores(String erpIdQad, String supplierCode, String supplierName,
             String taxId, Pageable pageable);
 
     SupplierVersionHistoryDTO obtenerVersiones(Long supplierId, Pageable pageable);

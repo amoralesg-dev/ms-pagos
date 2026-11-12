@@ -25,7 +25,6 @@ import com.rassini.pagos.exception.ResourceNotFoundException;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.repository.SupplierVersionRepository;
 import com.rassini.pagos.service.SupplierHistoryService;
-import com.rassini.pagos.util.BankDataMasker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -47,9 +46,9 @@ public class SupplierHistoryServiceImpl implements SupplierHistoryService {
     private final SupplierVersionRepository versionRepository;
 
     @Override
-    public Page<SupplierSummaryDTO> buscarProveedores(Long supplierId, String supplierCode, String supplierName,
+    public Page<SupplierSummaryDTO> buscarProveedores(String erpIdQad, String supplierCode, String supplierName,
             String taxId, Pageable pageable) {
-        Page<Supplier> page = supplierRepository.buscarParaHistorial(supplierId, blankToNull(supplierCode),
+        Page<Supplier> page = supplierRepository.buscarParaHistorial(blankToNull(erpIdQad), blankToNull(supplierCode),
                 blankToNull(supplierName), blankToNull(taxId), pageable);
 
         Map<Long, Long> counts = new HashMap<>();
@@ -66,7 +65,7 @@ public class SupplierHistoryServiceImpl implements SupplierHistoryService {
                 .supplierName(s.getSupplierName())
                 .rfc(s.getRfc())
                 .businessUnitCode(s.getBusinessUnitCode())
-                .accountNumber(BankDataMasker.mask(s.getAccountNumber()))
+                .accountNumber(s.getAccountNumber())
                 .bankCurrency(s.getBankCurrency())
                 .bankName(s.getBeneficiaryBankName())
                 .versionCount(counts.getOrDefault(s.getId(), 0L))
