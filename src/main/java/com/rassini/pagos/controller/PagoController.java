@@ -42,6 +42,7 @@ public class PagoController {
         Map.entry("codigoProveedor", "codigoProveedor"),
         Map.entry("rfcBeneficiario", "rfcBeneficiario"),
         Map.entry("nombreBeneficiario", "nombreBeneficiario"),
+        Map.entry("cuentaBeneficiario", "cuentaBeneficiario"),
         Map.entry("monto", "monto"),
         Map.entry("moneda", "moneda"),
         Map.entry("referencia", "referencia"),
