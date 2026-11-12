@@ -16,7 +16,6 @@ public class SupplierSummaryDTO {
     private String supplierName;
     private String rfc;
     private String businessUnitCode;
-    /** Enmascarado: solo ultimos 4 caracteres visibles. */
     private String accountNumber;
     private String bankCurrency;
     private String bankName;

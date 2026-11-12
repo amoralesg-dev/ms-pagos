@@ -85,7 +85,7 @@ class SupplierHistoryServiceImplTest {
                 .thenReturn(List.<Object[]>of(new Object[] { 10L, 3L }));
 
         SupplierSummaryDTO dto = service.buscarProveedores(" 1001 ", " 1001 ", "", null, pr).getContent().get(0);
-        assertEquals("************1234", dto.getAccountNumber());
+        assertEquals("TESTACCT00001234", dto.getAccountNumber());
         assertEquals("USD", dto.getBankCurrency());
         assertEquals(3L, dto.getVersionCount());
         assertEquals("BANK NEW", dto.getBankName());

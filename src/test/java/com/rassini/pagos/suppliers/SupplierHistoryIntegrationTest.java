@@ -62,7 +62,7 @@ class SupplierHistoryIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].versionCount").value(3))
                 .andExpect(jsonPath("$.content[0].bankCurrency").value("MXN"))
-                .andExpect(jsonPath("$.content[0].accountNumber").value("************9999"));
+                .andExpect(jsonPath("$.content[0].accountNumber").value("TESTACCT00009999"));
 
         mockMvc.perform(get("/suppliers").param("erpIdQad", "777001"))
                 .andExpect(status().isOk())

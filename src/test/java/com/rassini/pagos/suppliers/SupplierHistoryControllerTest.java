@@ -44,13 +44,13 @@ class SupplierHistoryControllerTest {
     @Test
     void listaProveedores_paginada() throws Exception {
         SupplierSummaryDTO s = SupplierSummaryDTO.builder().id(10L).supplierCode("1001").erpIdQad("ERP1001")
-                .accountNumber("****1234").bankCurrency("USD").versionCount(2).build();
+                .accountNumber("TESTACCT00001234").bankCurrency("USD").versionCount(2).build();
         when(service.buscarProveedores(eq("ERP1001"), eq("1001"), isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(s), PageRequest.of(1, 5), 6));
 
         mockMvc.perform(get("/suppliers").param("erpIdQad", "ERP1001").param("supplierCode", "1001").param("page", "1").param("size", "5"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].accountNumber").value("****1234"))
+                .andExpect(jsonPath("$.content[0].accountNumber").value("TESTACCT00001234"))
                 .andExpect(jsonPath("$.content[0].bankCurrency").value("USD"))
                 .andExpect(jsonPath("$.content[0].versionCount").value(2))
                 .andExpect(jsonPath("$.totalElements").value(6));

@@ -25,7 +25,6 @@ import com.rassini.pagos.exception.ResourceNotFoundException;
 import com.rassini.pagos.repository.SupplierRepository;
 import com.rassini.pagos.repository.SupplierVersionRepository;
 import com.rassini.pagos.service.SupplierHistoryService;
-import com.rassini.pagos.util.BankDataMasker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -66,7 +65,7 @@ public class SupplierHistoryServiceImpl implements SupplierHistoryService {
                 .supplierName(s.getSupplierName())
                 .rfc(s.getRfc())
                 .businessUnitCode(s.getBusinessUnitCode())
-                .accountNumber(BankDataMasker.mask(s.getAccountNumber()))
+                .accountNumber(s.getAccountNumber())
                 .bankCurrency(s.getBankCurrency())
                 .bankName(s.getBeneficiaryBankName())
                 .versionCount(counts.getOrDefault(s.getId(), 0L))
