@@ -64,6 +64,15 @@ class SupplierHistoryIntegrationTest {
                 .andExpect(jsonPath("$.content[0].bankCurrency").value("MXN"))
                 .andExpect(jsonPath("$.content[0].accountNumber").value("************9999"));
 
+        mockMvc.perform(get("/suppliers").param("erpIdQad", "777001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].erpIdQad").value("777001"));
+
+        mockMvc.perform(get("/suppliers").param("erpIdQad", "NO_EXISTE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+
         mockMvc.perform(get("/suppliers/" + supplierId + "/versions").param("size", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.current.current").value(true))

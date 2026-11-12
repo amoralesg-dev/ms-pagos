@@ -86,13 +86,13 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     /** Busqueda paginada para el historial de versiones bancarias (Portal CxP). Parametros null = sin filtro. */
     @Query("""
         SELECT s FROM Supplier s
-        WHERE (:supplierId IS NULL OR s.id = :supplierId)
+        WHERE (:erpIdQad IS NULL OR s.erpIdQad = :erpIdQad)
           AND (:supplierCode IS NULL OR s.supplierCode = :supplierCode)
           AND (:supplierName IS NULL OR LOWER(s.supplierName) LIKE LOWER(CONCAT('%', :supplierName, '%')))
           AND (:taxId IS NULL OR UPPER(s.rfc) = UPPER(:taxId))
         """)
     org.springframework.data.domain.Page<Supplier> buscarParaHistorial(
-            @Param("supplierId") Long supplierId,
+            @Param("erpIdQad") String erpIdQad,
             @Param("supplierCode") String supplierCode,
             @Param("supplierName") String supplierName,
             @Param("taxId") String taxId,
