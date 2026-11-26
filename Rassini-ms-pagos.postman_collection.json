@@ -1,0 +1,1743 @@
+{
+  "info": {
+    "_postman_id": "1a0300ec-8806-4395-a4ad-7adf3547e7b3",
+    "name": "Rassini-ms-pagos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54235870",
+    "_collection_link": "https://go.postman.co/collection/54235870-1a0300ec-8806-4395-a4ad-7adf3547e7b3?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "ping",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/file/ping",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "file",
+            "ping"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "portal/pagos/pendientes",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/pendientes",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "pendientes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "portal/pagos/errores",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/errores/paginado?bu=0301&page=0&size=10",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "errores",
+            "paginado"
+          ],
+          "query": [
+            {
+              "key": "bu",
+              "value": "0301"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "filtro Todo",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/pendientes/filtro",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "pendientes",
+            "filtro"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "filtro proveedor",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/pendientes",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "pendientes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "filtro rfc",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/pendientes/filtro?rfcBeneficiario=AME021114BM1",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "pendientes",
+            "filtro"
+          ],
+          "query": [
+            {
+              "key": "rfcBeneficiario",
+              "value": "AME021114BM1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "filtro rfc y proveedor",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/pendientes/filtro?codigoProveedor=COAME&rfcBeneficiario=AME021114BM1",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "pendientes",
+            "filtro"
+          ],
+          "query": [
+            {
+              "key": "codigoProveedor",
+              "value": "COAME"
+            },
+            {
+              "key": "rfcBeneficiario",
+              "value": "AME021114BM1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/portal/pagos/clasificacion",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"id\": 46,\r\n      \"dealType\": \"PROVEED\"\r\n    }\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/clasificacion",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "clasificacion"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/portal/pagos/cache/refresh",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/cache/refresh",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "cache",
+            "refresh"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/portal/pagos/cache/refresh Copy",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/cache/refresh",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "cache",
+            "refresh"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/portal/file/loader",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/file/loader",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "file",
+            "loader"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/portal/file/loader Copy",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:8080/portal/file/loader",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8080",
+          "path": [
+            "portal",
+            "file",
+            "loader"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "analitica",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "files",
+              "type": "file",
+              "uuid": "40d6d888-1149-4ce8-af64-c1d8171718fc",
+              "src": [
+                "/C:/Users/nitsu/Downloads/SB040926H122210-20260409133045.txt",
+                "/C:/Users/nitsu/Downloads/P260413H123935-20260413141056.txt",
+                "/C:/Users/nitsu/Downloads/P260410H113724-20260410130158.txt",
+                "/C:/Users/nitsu/Downloads/P260410H112809-20260410130158.txt",
+                "/C:/Users/nitsu/Downloads/Integrity_260410082851-20260410103116.txt",
+                "/C:/Users/nitsu/Downloads/Integrity_260410082006-20260410102102.txt",
+                "/C:/Users/nitsu/Downloads/F040926H181747-20260409193032.txt"
+              ],
+              "disabled": true
+            },
+            {
+              "key": "bu",
+              "value": "ALL",
+              "type": "text",
+              "uuid": "ac791fb7-9bed-44a8-8d51-4568893c6253"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://{{HOST}}:8082/ms-pagos/pagos/analitica-pendientes",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8082",
+          "path": [
+            "ms-pagos",
+            "pagos",
+            "analitica-pendientes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "oauthGraphite",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/auth/token",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "auth",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "graphite/suppliers",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/api/sync/graphite/suppliers?connectionRole=buyer&applyVisibilityRules=true&interface=QAD",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "api",
+            "sync",
+            "graphite",
+            "suppliers"
+          ],
+          "query": [
+            {
+              "key": "ids",
+              "value": "MX729844",
+              "disabled": true
+            },
+            {
+              "key": "connectionRole",
+              "value": "buyer"
+            },
+            {
+              "key": "applyVisibilityRules",
+              "value": "true"
+            },
+            {
+              "key": "interface",
+              "value": "QAD"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/graphite/suppliers/integrity/migration",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/api/sync/graphite/suppliers/integrity/migration",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "api",
+            "sync",
+            "graphite",
+            "suppliers",
+            "integrity",
+            "migration"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/graphite/suppliers/integrity/migration/by-erp-ids",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"erpIds\": [\r\n    \"EM20651\",\r\n    \"EM2069\",\r\n    \"EM2083\",\r\n    \"EM2123\",\r\n    \"EM2309\",\r\n    \"EM2326\",\r\n    \"EM2326\",\r\n    \"EM2328\",\r\n    \"EM2330\",\r\n    \"EM2330\",\r\n    \"EM2409\",\r\n    \"EM2460\",\r\n    \"EM2466\",\r\n    \"EM911062\",\r\n    \"EM911403\",\r\n    \"EM911405\",\r\n    \"EM911529\",\r\n    \"EM911541\",\r\n    \"EM911556\",\r\n    \"EM2197\",\r\n    \"EM2403\",\r\n    \"EM60200\",\r\n    \"EM660019\",\r\n    \"EM660557\",\r\n    \"EM660912\",\r\n    \"EM661004\",\r\n    \"EM669997\",\r\n    \"EM909356\",\r\n    \"EM909441\",\r\n    \"EM911378\",\r\n    \"EM911418\",\r\n    \"EM911565\",\r\n    \"EM911566\",\r\n    \"EM912\",\r\n    \"EM912197\",\r\n    \"EM15941\",\r\n    \"EM3713\",\r\n    \"EM5845\",\r\n    \"EM6354\",\r\n    \"EM71241\",\r\n    \"EM8539\",\r\n    \"EM9066\",\r\n    \"EM9070\",\r\n    \"EM9079\",\r\n    \"EM9086\",\r\n    \"EM9095\",\r\n    \"EM9101\",\r\n    \"EM911408\",\r\n    \"EM911428\",\r\n    \"EM911453\",\r\n    \"EM911564\",\r\n    \"EM911489\",\r\n    \"EM1432\",\r\n    \"EM173\",\r\n    \"EM1854\",\r\n    \"EM1873\",\r\n    \"EM1946\",\r\n    \"EM1974\",\r\n    \"EM1975\",\r\n    \"EM1979\",\r\n    \"EM2034\",\r\n    \"EM2037\",\r\n    \"EM2037\",\r\n    \"EM2066\",\r\n    \"EM2072\",\r\n    \"EM211\",\r\n    \"EM2169\",\r\n    \"EM2254\",\r\n    \"EM2284\",\r\n    \"EM2356\",\r\n    \"EM2360\",\r\n    \"EM2364\",\r\n    \"EM2396\",\r\n    \"EM2415\",\r\n    \"EM242\",\r\n    \"EM2421\",\r\n    \"EM2424\",\r\n    \"EM2440\",\r\n    \"EM2444\",\r\n    \"EM2445\",\r\n    \"EM2449\",\r\n    \"EM2453\",\r\n    \"EM2453\",\r\n    \"EM2455\",\r\n    \"EM2456\",\r\n    \"EM2457\",\r\n    \"EM2470\",\r\n    \"EM2475\",\r\n    \"EM905010\",\r\n    \"EM906347\",\r\n    \"EM906573\",\r\n    \"EM907771\",\r\n    \"EM908364\",\r\n    \"EM909014\",\r\n    \"EM909260\",\r\n    \"EM909584\",\r\n    \"EM910337\",\r\n    \"EM910485\",\r\n    \"EM910486\",\r\n    \"EM910899\",\r\n    \"EM911352\",\r\n    \"EM911365\",\r\n    \"EM911415\",\r\n    \"EM911419\",\r\n    \"EM911423\",\r\n    \"EM911424\",\r\n    \"EM911429\",\r\n    \"EM911439\",\r\n    \"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/api/sync/graphite/suppliers/integrity/migration/by-erp-ids",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "api",
+            "sync",
+            "graphite",
+            "suppliers",
+            "integrity",
+            "migration",
+            "by-erp-ids"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "reprocess",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/suppliers/reprocess/MX730778",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "suppliers",
+            "reprocess",
+            "MX730778"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "reloadcache",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/suppliers/reprocess/reload",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "suppliers",
+            "reprocess",
+            "reload"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "reloadcache size",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/suppliers/reprocess/reload/size",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "suppliers",
+            "reprocess",
+            "reload",
+            "size"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "equivalencia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/suppliers/reprocess/reload/equivalencia?idCatalogo=country&code=MX&businessUnit=09",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "suppliers",
+            "reprocess",
+            "reload",
+            "equivalencia"
+          ],
+          "query": [
+            {
+              "key": "idCatalogo",
+              "value": "country"
+            },
+            {
+              "key": "code",
+              "value": "MX"
+            },
+            {
+              "key": "businessUnit",
+              "value": "09"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "IntegrityFile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/integrity/suppliers/MX729844",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "integrity",
+            "suppliers",
+            "MX729844"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "populate populate-dis-integrity",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();\r",
+              "\r",
+              "// Guardar token\r",
+              "pm.environment.set(\"access_token\", json.access_token);\r",
+              "\r",
+              "// Guardar tipo (Bearer)\r",
+              "pm.environment.set(\"token_type\", json.token_type);\r",
+              "\r",
+              "// Guardar expiración (opcional)\r",
+              "pm.environment.set(\"expires_at\", json.expires_at);\r",
+              "\r",
+              "// Log para debug\r",
+              "console.log(\"Token guardado:\", json.access_token);\r",
+              "\r",
+              "console.log(\"Token guardado en pm:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only graphite/suppliers\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://{{HOST}}:8081/graphite-client/integrity/suppliers/populate-dis-integrity",
+          "protocol": "http",
+          "host": [
+            "{{HOST}}"
+          ],
+          "port": "8081",
+          "path": [
+            "graphite-client",
+            "integrity",
+            "suppliers",
+            "populate-dis-integrity"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "changes/connections-dev",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/public/api/v1/changes/connections?interface=QAD&limit=100&connectionPhases=connected&connectionRole=buyer",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "changes",
+            "connections"
+          ],
+          "query": [
+            {
+              "key": "interface",
+              "value": "QAD"
+            },
+            {
+              "key": "filterEntitiesWithConfirmationReviews",
+              "value": "true",
+              "disabled": true
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            },
+            {
+              "key": "connectionPhases",
+              "value": "connected"
+            },
+            {
+              "key": "connectionRole",
+              "value": "buyer"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "changes/connections-prod",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://app.graphiteconnect.com/api/public/api/v1/changes/connections?interface=QAD&limit=100&connectionPhases=connected&connectionRole=buyer",
+          "protocol": "https",
+          "host": [
+            "app",
+            "graphiteconnect",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "changes",
+            "connections"
+          ],
+          "query": [
+            {
+              "key": "interface",
+              "value": "QAD"
+            },
+            {
+              "key": "filterEntitiesWithConfirmationReviews",
+              "value": "true",
+              "disabled": true
+            },
+            {
+              "key": "limit",
+              "value": "100"
+            },
+            {
+              "key": "connectionPhases",
+              "value": "connected"
+            },
+            {
+              "key": "connectionRole",
+              "value": "buyer"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "changes/connections byid-dev",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/public/api/v1/changes/connections",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "changes",
+            "connections"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "changes/connections byid-prod",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://app.graphiteconnect.com/api/public/api/v1/changes/connections",
+          "protocol": "https",
+          "host": [
+            "app",
+            "graphiteconnect",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "changes",
+            "connections"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/profile",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "console.info(\"test only\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/public/api/v1/profile/example",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "profile",
+            "example"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "profile by id-dev",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.info(\"test only api/public/api/v1/profile/NN730098\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/public/api/v1/profile/MX730778?interface=QAD",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "profile",
+            "MX730778"
+          ],
+          "query": [
+            {
+              "key": "interface",
+              "value": "QAD"
+            },
+            {
+              "key": "connectionRole",
+              "value": "buyer",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "applyVisibilityRules",
+              "value": "true",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "profile by id-prod",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.info(\"test only api/public/api/v1/profile/NN730098\")\r",
+              "\r",
+              "console.log(\"Token guardado:\", pm.environment.get(\"access_token\"));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://app.graphiteconnect.com/api/public/api/v1/profile/MX730871",
+          "protocol": "https",
+          "host": [
+            "app",
+            "graphiteconnect",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "profile",
+            "MX730871"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "changes/acknowledge",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"interface\": null,\r\n  \"connectionRole\": \"buyer\",\r\n  \"publicId\": \"69d6cbe513f5aa0550fd7033\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/public/api/v1/changes/acknowledge",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "public",
+            "api",
+            "v1",
+            "changes",
+            "acknowledge"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "oauth poc-test",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"client_id\":\"MX5402.1d2b900374b1\",\r\n  \"client_secret\":\"3d1dbcfce1dee4fc1a846a7eb953d7fb\",\r\n  \"grant_type\":\"client_credentials\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://poc.projectgraphite.com/api/oauth/token",
+          "protocol": "https",
+          "host": [
+            "poc",
+            "projectgraphite",
+            "com"
+          ],
+          "path": [
+            "api",
+            "oauth",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "oauth prod",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"client_id\":\"MX5402.126cec9c33cb\",\r\n  \"client_secret\":\"1c88cbc1acb28c001bae322c2e529276\",\r\n  \"grant_type\":\"client_credentials\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://app.graphiteconnect.com/api/oauth/token",
+          "protocol": "https",
+          "host": [
+            "app",
+            "graphiteconnect",
+            "com"
+          ],
+          "path": [
+            "api",
+            "oauth",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    }
+  ]
+}
