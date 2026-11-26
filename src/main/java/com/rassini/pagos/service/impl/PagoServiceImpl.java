@@ -780,8 +780,9 @@ public class PagoServiceImpl implements PagoService {
             campos[17] = nvl(supplier.getStateCode());
             campos[18] = nvl(supplier.getCountryCode());
 
-            campos[19] = nvl(pago.getCuentaBeneficiario());
-            campos[20] = nvl(pago.getMonedaBeneficiario());
+            //correccion de campos 19 y 20 para que se tomen del supplier de acuerdo a mapeo de layout
+            campos[19] = nvl(supplier.getAccountNumber());
+            campos[20] = nvl(supplier.getBankCurrency());
 
             // al parecer ya no se usara
             boolean isBeneficiaryBankValid = true;
